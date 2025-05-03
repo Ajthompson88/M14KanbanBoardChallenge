@@ -1,11 +1,11 @@
 import { useEffect, useState, useLayoutEffect } from 'react';
 import { Link } from 'react-router-dom';
 
-import { retrieveTickets, deleteTicket } from '../api/ticketAPI';
-import ErrorPage from './ErrorPage';
-import Swimlane from '../components/Swimlane';
-import { TicketData } from '../interfaces/TicketData';
-import { ApiMessage } from '../interfaces/ApiMessage';
+import { retrieveTickets, deleteTicket } from '../api/ticketAPI.js';
+import ErrorPage from './ErrorPage.js';
+import Swimlane from '../components/Swimlane.js';
+import { TicketData } from '../interfaces/TicketData.js';
+import { ApiMessage } from '../interfaces/ApiMessage.js';
 
 import auth from '../utils/auth.js';
 

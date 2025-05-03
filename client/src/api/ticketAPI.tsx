@@ -1,7 +1,6 @@
-import { TicketData } from '../interfaces/TicketData';
-import { ApiMessage } from '../interfaces/ApiMessage';
+import { TicketData } from '../interfaces/TicketData.js';
+import { ApiMessage } from '../interfaces/ApiMessage.js';
 import Auth from '../utils/auth.js';
-import axios from 'axios';
 
 const retrieveTickets = async () => {
   try {
@@ -53,8 +52,18 @@ const retrieveTicket = async (id: number | null): Promise<TicketData> => {
 
 export const createTicket = async (ticket: TicketData): Promise<TicketData> => {
   try {
-    const response = await axios.post<TicketData>('/api/tickets', ticket); // Replace with your backend endpoint
-    return response.data;
+   const response = await fetch(
+      '/api/tickets/',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${Auth.getToken()}`
+        },
+        body: JSON.stringify(ticket)
+      })
+      const data = await response.json();
+    return data;
   } catch (error) {
     console.error('Error creating ticket:', error);
     throw error;

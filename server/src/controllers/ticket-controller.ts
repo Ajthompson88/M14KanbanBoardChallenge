@@ -45,7 +45,8 @@ export const getTicketById = async (req: Request, res: Response) => {
 
 // POST /tickets
 export const createTicket = async (req: Request, res: Response) => {
-  const { name, status, description, assignedUserId } = req.body;
+  console.log("hello");
+  const { name,status, description, assignedUserId } = req.body;
   try {
     const newTicket = await Ticket.create({ name, status, description, assignedUserId });
     res.status(201).json(newTicket);
