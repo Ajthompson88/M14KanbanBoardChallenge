@@ -44,7 +44,7 @@ logout() {
   // TODO: remove the token from localStorage
   // TODO: redirect to the login page
   localStorage.removeItem('token');
-  window.location.assign('/login');
+  window.location.assign('/');
 }
 }
 
