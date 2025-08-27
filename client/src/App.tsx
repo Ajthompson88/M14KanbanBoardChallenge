@@ -1,17 +1,10 @@
-import { Outlet } from 'react-router-dom';
-
-import Navbar from './components/Navbar';
-
-function App() {
-
+// src/App.tsx
+import Navbar from "./components/Navbar";
+export default function App() {
   return (
-    <div className='container'>
+    <>
       <Navbar />
-      <main>
-        <Outlet />
-      </main>
-    </div>
-  )
+      
+    </>
+  );
 }
-
-export default App
