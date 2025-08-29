@@ -1,21 +1,22 @@
 import { useState, FormEvent } from 'react';
-
+import { useNavigate } from 'react-router-dom';
+import { login } from '../api/authAPI';
 export default function Login() {
   const [username, setUsername] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-
+  const navigate = useNavigate();
+  
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
     setIsLoading(true);
     try {
       if (!username || !password) throw new Error('Please enter username and password.');
-      // TODO: call your real login API here
-      // await login({ username, password });
-      // navigate('/');
+       await login({ username, password });
+       navigate('/');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
     } finally {
@@ -38,9 +39,7 @@ export default function Login() {
 
         <div className="rounded-2xl bg-white shadow-lg ring-1 ring-slate-200">
           <div className="p-6 sm:p-7">
-            {/* Optional: Tailwind alive banner */}
-            {/* <div className="mb-4 rounded-lg bg-emerald-50 p-3 text-emerald-700">Tailwind v4 ACTIVE ✅</div> */}
-
+           
             {error && (
               <div className="mb-4 rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">
                 {error}

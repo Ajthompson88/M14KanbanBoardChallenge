@@ -2,7 +2,9 @@
 {
   "compilerOptions": {
     "noEmit": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "module": "ESNext",
+    "moduleResolution": "node"
   },
   "exclude": ["node_modules", "client/dist", "server/dist"]
 }

@@ -1,24 +1,20 @@
+// models/index.ts
+import { sequelize } from '../config/connection.js';
+import { User as UserClass, UserFactory } from './user.js';
+import { Ticket as TicketClass, TicketFactory } from './ticket.js';
 import dotenv from 'dotenv';
+
 dotenv.config();
 
-import { Sequelize } from 'sequelize';
-import { UserFactory } from './user.js';
-import { TicketFactory } from './ticket.js';
+UserFactory(sequelize);
 
-const sequelize = process.env.DB_URL
-  ? new Sequelize(process.env.DB_URL)
-  : new Sequelize(process.env.DB_NAME || '', process.env.DB_USER || '', process.env.DB_PASSWORD, {
-      host: 'localhost',
-      dialect: 'postgres',
-      dialectOptions: {
-        decimalNumbers: true,
-      },
-    });
-
+// Initialize models
 const User = UserFactory(sequelize);
 const Ticket = TicketFactory(sequelize);
 
-User.hasMany(Ticket, { foreignKey: 'assignedUserId' });
-Ticket.belongsTo(User, { foreignKey: 'assignedUserId', as: 'assignedUser'});
+// Associations
+Ticket.belongsTo(User, { foreignKey: 'assignedUserId', as: 'assignedUser' });
+User.hasMany(Ticket, { foreignKey: 'assignedUserId', as: 'tickets' });
 
 export { sequelize, User, Ticket };
+export default sequelize;

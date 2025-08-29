@@ -1,3 +1,4 @@
+// src/models/user.ts
 import { DataTypes, Sequelize, Model, Optional } from 'sequelize';
 import bcrypt from 'bcrypt';
 
@@ -17,7 +18,6 @@ export class User extends Model<UserAttributes, UserCreationAttributes> implemen
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
 
-  // Hash the password before saving the user
   public async setPassword(password: string) {
     const saltRounds = 10;
     this.password = await bcrypt.hash(password, saltRounds);
@@ -27,33 +27,23 @@ export class User extends Model<UserAttributes, UserCreationAttributes> implemen
 export function UserFactory(sequelize: Sequelize): typeof User {
   User.init(
     {
-      id: {
-        type: DataTypes.INTEGER,
-        autoIncrement: true,
-        primaryKey: true,
-      },
-      username: {
-        type: DataTypes.STRING,
-        allowNull: false,
-      },
-      password: {
-        type: DataTypes.STRING,
-        allowNull: false,
-      },
+      id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
+      username: { type: DataTypes.STRING, allowNull: false },
+      password: { type: DataTypes.STRING, allowNull: false },
     },
     {
       tableName: 'users',
       sequelize,
+      timestamps: true,
       hooks: {
         beforeCreate: async (user: User) => {
-          await user.setPassword(user.password);
+          if (user.password) await user.setPassword(user.password);
         },
         beforeUpdate: async (user: User) => {
-          await user.setPassword(user.password);
+          if (user.changed('password')) await user.setPassword(user.password);
         },
-      }
+      },
     }
   );
-
   return User;
 }

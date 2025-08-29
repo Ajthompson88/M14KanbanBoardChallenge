@@ -1,6 +1,7 @@
 {
-    "watch": ["src"],
-    "ext": "ts,json",
+    "watch": ["dist"],
+    "ext": "js,json",
+    "exec": "node dist/server.js",
     "ignore": ["dist", "../client", "../client/dist", "node_modules"]
   }
   
