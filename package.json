@@ -15,7 +15,8 @@
     "build:server": "cd server && npm run build",
     "build": "cd client && npm run build",
     "seed": "cd server && npm run seed",
-    "render-build": "npm --prefix server ci && npm --prefix client ci && npm --prefix server run build && npm --prefix client run build"
+    "render-build": "npm --prefix server install --no-audit --no-fund && npm --prefix client install --no-audit --no-fund && npm --prefix server run build && npm --prefix client run build",
+    "render-start": "npm --prefix server run start"
   },
   "keywords": [],
   "author": "",
