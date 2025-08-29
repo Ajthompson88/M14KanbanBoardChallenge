@@ -1,6 +1,6 @@
 {
   "name": "main",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -15,13 +15,14 @@
     "build:server": "cd server && npm run build",
     "build": "cd client && npm run build",
     "seed": "cd server && npm run seed",
-    "render-build": "npm run build:server && npm run build:client"
+    "render-build": "npm --prefix server ci && npm --prefix client ci && npm --prefix server run build && npm --prefix client run build"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
     "@types/axios": "^0.9.36",
+    "@types/sequelize": "^6.12.0",
     "autoprefixer": "^10.4.21",
     "concurrently": "^8.2.2",
     "kill-port": "^2.0.1",
@@ -29,5 +30,8 @@
     "postcss": "^8.5.6",
     "tailwindcss": "^4.1.12",
     "wait-on": "^7.2.0"
+  },
+  "engines": {
+    "node": "20.x"
   }
 }
