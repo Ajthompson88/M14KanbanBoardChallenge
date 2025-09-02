@@ -1,13 +1,11 @@
-import axios from 'axios';
-import { UserLogin } from "../interfaces/UserLogin";
+import { api } from './http';
+import type { UserLogin } from '../interfaces/UserLogin';
 
-const login = async (userInfo: UserLogin) => {
-  const response = await axios.post('/auth/login', userInfo);
-  const  token  = response.data;
-  console.log(response);
-  console.log(typeof response.data);
-  localStorage.setItem('token', token as string);
+interface LoginResponse { token: string }
+
+export const login = async (userInfo: UserLogin): Promise<string> => {
+  const { data } = await api.post<LoginResponse>('/auth/login', userInfo);
+  const token = data.token;
+  localStorage.setItem('auth_token', token); // single source of truth
   return token;
 };
-
-export { login };

@@ -1,24 +1,28 @@
-import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react'
-import tailwindcss from '@tailwindcss/vite'
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
 
-// https://vitejs.dev/config/
+// Dev server on :3000; proxy API & auth to :3001 (your Express server)
 export default defineConfig({
+  plugins: [react()],
   server: {
     port: 3000,
-    open: true,
+    strictPort: true,
     proxy: {
-      '/api': {
-        target: 'http://localhost:3001',
+      "/api": {
+        target: "http://localhost:3001",
         changeOrigin: true,
         secure: false,
       },
-      '/auth': {
-        target: 'http://localhost:3001',
+      "/auth": {
+        target: "http://localhost:3001",
         changeOrigin: true,
-        secure: false
+        secure: false,
       },
     },
   },
-  plugins: [react(), tailwindcss()],
+  // (Optional) nice defaults for `vite preview`
+  preview: {
+    port: 4173,
+    strictPort: true,
+  },
 });

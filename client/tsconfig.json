@@ -8,8 +8,10 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "isolatedModules": true,
-    "noEmit": true
+    "noEmit": true,
+    "types": ["vite/client"],
+    "esModuleInterop": true,
   },
-  "include": ["src"],
+  "include": ["src", "vite.config.ts"],
   "exclude": ["dist", "node_modules"]
 }

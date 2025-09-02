@@ -1,22 +1,27 @@
-import { useState, FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { login } from '../api/authAPI';
+import { login as apiLogin } from '../api/authAPI';
+import { useAuth } from '../context/AuthContext'; // assumes you already have this
+
 export default function Login() {
-  const [username, setUsername] = useState<string>('');
-  const [password, setPassword] = useState<string>('');
-  const [showPassword, setShowPassword] = useState<boolean>(false);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
   const navigate = useNavigate();
-  
+  const { login } = useAuth(); // context method: login(token: string)
+
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
     setIsLoading(true);
     try {
       if (!username || !password) throw new Error('Please enter username and password.');
-       await login({ username, password });
-       navigate('/');
+      const token = await apiLogin({ username, password });
+      login(token);                         // update context immediately
+      navigate('/board', { replace: true }); // go to the actual board route
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
     } finally {
@@ -28,29 +33,20 @@ export default function Login() {
     <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
       <div className="w-full max-w-md">
         <div className="mb-6 flex items-center gap-3">
-          <div className="inline-grid h-10 w-10 place-items-center rounded-xl bg-slate-900 text-white text-sm font-bold">
-            KB
-          </div>
+          <div className="inline-grid h-10 w-10 place-items-center rounded-xl bg-slate-900 text-white text-sm font-bold">KB</div>
           <div>
-            <h1 className="text-xl center font-semibold text-slate-900">Krazy Kanban Board</h1>
+            <h1 className="text-xl font-semibold text-slate-900">Krazy Kanban Board</h1>
             <p className="text-sm text-slate-500">Sign in to continue</p>
           </div>
         </div>
 
         <div className="rounded-2xl bg-white shadow-lg ring-1 ring-slate-200">
           <div className="p-6 sm:p-7">
-           
-            {error && (
-              <div className="mb-4 rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">
-                {error}
-              </div>
-            )}
+            {error && <div className="mb-4 rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">{error}</div>}
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label htmlFor="username" className="mb-1.5 block text-sm font-medium text-slate-700">
-                  Username
-                </label>
+                <label htmlFor="username" className="mb-1.5 block text-sm font-medium text-slate-700">Username</label>
                 <input
                   id="username"
                   name="username"
@@ -64,12 +60,8 @@ export default function Login() {
 
               <div>
                 <div className="mb-1.5 flex items-center justify-between">
-                  <label htmlFor="password" className="block text-sm font-medium text-slate-700">
-                    Password
-                  </label>
-                  <a href="/forgot" className="text-xs font-medium text-slate-600 hover:text-slate-900">
-                    Forgot?
-                  </a>
+                  <label htmlFor="password" className="block text-sm font-medium text-slate-700">Password</label>
+                  <a href="/forgot" className="text-xs font-medium text-slate-600 hover:text-slate-900">Forgot?</a>
                 </div>
                 <div className="relative">
                   <input
@@ -84,7 +76,7 @@ export default function Login() {
                   />
                   <button
                     type="button"
-                    onClick={() => setShowPassword((v: boolean) => !v)}
+                    onClick={() => setShowPassword((v) => !v)}
                     className="absolute inset-y-0 right-0 grid w-10 place-items-center text-slate-500 hover:text-slate-700"
                     aria-label={showPassword ? 'Hide password' : 'Show password'}
                   >
@@ -109,9 +101,7 @@ export default function Login() {
 
             <p className="mt-4 text-center text-xs text-slate-500">
               Don’t have an account?{' '}
-              <a href="/signup" className="font-medium text-slate-700 hover:text-slate-900">
-                Create one
-              </a>
+              <a href="/signup" className="font-medium text-slate-700 hover:text-slate-900">Create one</a>
             </p>
           </div>
         </div>
