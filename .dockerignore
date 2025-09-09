@@ -1,0 +1,12 @@
+node_modules
+dist
+build
+Dockerfile*
+.dockerignore
+.git
+.gitignore
+.env
+.vscode
+.eslintcache
+coverage
+*.log
