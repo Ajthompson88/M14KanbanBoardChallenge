@@ -1,102 +1,47 @@
-version: '3.8'
-
 services:
-  # PostgreSQL Database
-  postgres:
-    image: postgres:15-alpine
-    container_name: kanban_postgres
-    restart: unless-stopped
+  db:
+    image: postgres:17
     environment:
-      POSTGRES_DB: kanban_db
-      POSTGRES_USER: kanban_user
-      POSTGRES_PASSWORD: kanban_password
-      PGDATA: /var/lib/postgresql/data/pgdata
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./server/db/schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
+      POSTGRES_DB: kanbanboard_bobe
+      POSTGRES_USER: kanbanboard_bobe_user
+      POSTGRES_PASSWORD: Password123
     ports:
       - "5432:5432"
-    networks:
-      - kanban_network
+    volumes:
+      - dbdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U kanban_user -d kanban_db"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      test: ["CMD-SHELL", "pg_isready -U kanbanboard_bobe_user -d kanbanboard_bobe"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
 
-  # Node.js Backend API
-  api:
+  server:
     build:
       context: ./server
       dockerfile: Dockerfile
-    container_name: kanban_api
-    restart: unless-stopped
+    env_file:
+      - ./server/.env.local
     environment:
-      NODE_ENV: production
+      DB_URL: postgresql://kanbanboard_bobe_user:Password123@db:5432/kanbanboard_bobe
+      NODE_ENV: development
       PORT: 3001
-      DB_CONNECTION_STRING: postgres://kanban_user:kanban_password@postgres:5432/kanban_db
-      # Alternative discrete environment variables
-      DB_NAME: kanban_db
-      DB_USER: kanban_user
-      DB_PASSWORD: kanban_password
-      DB_HOST: postgres
-      # JWT secrets (change these in production!)
-      JWT_SECRET_KEY: your_jwt_secret_key_here_change_in_production
-      ACCESS_TOKEN_SECRET: your_access_token_secret_here_change_in_production
+      JWT_SECRET_KEY: ""
+    depends_on:
+      db:
+        condition: service_healthy
     ports:
       - "3001:3001"
-    networks:
-      - kanban_network
-    depends_on:
-      postgres:
-        condition: service_healthy
-    volumes:
-      # Optional: Mount logs directory for debugging
-      - api_logs:/app/logs
 
-  # React Frontend Client
   client:
     build:
       context: ./client
       dockerfile: Dockerfile
-    container_name: kanban_client
-    restart: unless-stopped
-    ports:
-      - "3000:3000"
-    networks:
-      - kanban_network
+    env_file:
+      - ./client/.env.local
     depends_on:
-      - api
-    environment:
-      - VITE_API_URL=http://localhost:3001
-
-  # Optional: pgAdmin for database management
-  pgadmin:
-    image: dpage/pgadmin4:latest
-    container_name: kanban_pgadmin
-    restart: unless-stopped
-    environment:
-      PGADMIN_DEFAULT_EMAIL: admin@kanban.local
-      PGADMIN_DEFAULT_PASSWORD: admin
+      - server
     ports:
-      - "5050:80"
-    networks:
-      - kanban_network
-    depends_on:
-      - postgres
-    volumes:
-      - pgadmin_data:/var/lib/pgadmin
-    profiles:
-      - tools  # Optional service - start with: docker-compose --profile tools up
+      - "5173:3000"   # host:container — nginx listens on 3000 in the image
 
 volumes:
-  postgres_data:
-    driver: local
-  pgadmin_data:
-    driver: local
-  api_logs:
-    driver: local
-
-networks:
-  kanban_network:
-    driver: bridge
+  dbdata:

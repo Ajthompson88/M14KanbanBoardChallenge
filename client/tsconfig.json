@@ -1,17 +1,18 @@
 {
   "compilerOptions": {
     "target": "ES2020",
-    "module": "ESNext",
-    "jsx": "react-jsx",
-    "moduleResolution": "bundler",
+    "module": "ES2020",  // Changed from "commonjs"
+    "moduleResolution": "node",
+    "rootDir": "src",
+    "outDir": "dist",
     "strict": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,  // Add this
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "isolatedModules": true,
-    "noEmit": true,
-    "types": ["vite/client"],
-    "esModuleInterop": true
+    "types": ["node"],
+    "resolveJsonModule": true
   },
-  "include": ["src", "vite.config.ts"],
-  "exclude": ["dist", "node_modules"]
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "dist"]
 }

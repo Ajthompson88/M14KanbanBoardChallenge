@@ -50,3 +50,11 @@ coverage/
 # Temporary directories
 tmp/
 temp/
+
+node_modules
+dist
+build
+.git
+npm-debug.log
+
+

@@ -11,8 +11,10 @@ export const sequelize = dbUrl
       dialect: 'postgres',
       logging: false,
       dialectOptions: {
-        
-        ssl: { require: true, rejectUnauthorized: false },
+        // Only use SSL in production
+        ssl: process.env.NODE_ENV === 'production' 
+          ? { require: true, rejectUnauthorized: false }
+          : false
       },
     })
   : new Sequelize(
@@ -23,5 +25,8 @@ export const sequelize = dbUrl
         host: process.env.DB_HOST || '127.0.0.1',
         dialect: 'postgres',
         logging: false,
+        dialectOptions: {
+          ssl: false  // No SSL for local development
+        }
       }
     );

@@ -1,14 +1,12 @@
 // models/index.ts
 import { sequelize } from '../config/connection.js';
-import { User as UserClass, UserFactory } from './user.js';
-import { Ticket as TicketClass, TicketFactory } from './ticket.js';
+import { UserFactory } from './user.js';
+import { TicketFactory } from './ticket.js';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
-UserFactory(sequelize);
-
-// Initialize models
+// Initialize models - remove the duplicate UserFactory call
 const User = UserFactory(sequelize);
 const Ticket = TicketFactory(sequelize);
 

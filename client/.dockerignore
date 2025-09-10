@@ -51,3 +51,10 @@ temp/
 
 # Vite specific
 .vite/
+
+
+node_modules
+dist
+build
+.git
+npm-debug.log
