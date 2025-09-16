@@ -1,21 +1,21 @@
-import axios from "axios";
+// src/api/http.ts
+import axios, { AxiosHeaders, type InternalAxiosRequestConfig } from "axios";
 
-// All calls go through the same origin; Vite proxies in dev,
-// and in prod you’ll reverse-proxy /api and /auth behind the same domain.
 export const api = axios.create({
-  baseURL: "/",             // key: use relative paths → no CORS
-  withCredentials: true,    // future-proof if you switch to cookies
-  headers: { "Content-Type": "application/json" },
+  baseURL: "/api",          // Vite proxy → server
+  withCredentials: false,   // using Bearer tokens, not cookies
 });
 
-// Attach stored Bearer token (your authAPI sets localStorage after login)
-api.interceptors.request.use((config) => {
+// Attach Authorization header if we have a token (typed, no `any`)
+api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   const token = localStorage.getItem("auth_token");
   if (token) {
-    config.headers = config.headers ?? {};
-    (config.headers as Record<string, string>).Authorization = `Bearer ${token}`;
+    const value = `Bearer ${token}`;
+    // Axios v1 headers can be an AxiosHeaders instance or a plain object
+    if (!(config.headers instanceof AxiosHeaders)) {
+      config.headers = new AxiosHeaders(config.headers ?? {});
+    }
+    (config.headers as AxiosHeaders).set("Authorization", value);
   }
   return config;
 });
-
-export default api;

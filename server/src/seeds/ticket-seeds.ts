@@ -1,21 +1,14 @@
-import { Ticket } from '../models/index.js';
+// server/src/seeds/ticket-seeds.ts
+import { Ticket } from "../models/index.js";
 
-export const seedTickets = async () => {
-  await Ticket.bulkCreate([
-    {
-      name: 'Design landing page',
-      status: 'In Progress',
-      description: 'Create wireframes and mockups for the landing page.',
-      assignedUserId: 1
-    },
-    {
-      name: 'Set up project repository',
-      status: 'Done',
-      description: 'Create repo on GitHub and initialize it with a README file.',
-      assignedUserId: 2
-    },
-    { name: 'Implement authentication', status: 'Todo', description: 'Set up user authentication using JWT tokens.', assignedUserId: 1 },
-    { name: 'Test the API', status: 'Todo', description: 'Test the API using Insomnia.', assignedUserId: 1 },
-    { name: 'Deploy to production', status: 'Todo', description: 'Deploy the application to Render.', assignedUserId: 2 },
-  ]);
-};
+export async function seedTickets() {
+  await Ticket.bulkCreate(
+    [
+      { name: "Set up auth", status: "Todo",        description: "JWT + guard", assignedUserId: 1 },
+      { name: "Build board", status: "In Progress", description: "Columns + drag", assignedUserId: 2 },
+      { name: "Polish UI",   status: "Done",        description: "Spacing + icons", assignedUserId: null },
+    ],
+    { ignoreDuplicates: true }
+  );
+  console.log("✅ Seeded tickets");
+}

@@ -1,5 +1,5 @@
 // client/src/AppLayout.tsx
-import Navbar from "./components/Navbar";
+import Navbar from "../components/Navbar";
 import { Outlet } from "react-router-dom";
 
 export default function AppLayout() {
@@ -10,3 +10,4 @@ export default function AppLayout() {
     </>
   );
 }
+export { AppLayout };

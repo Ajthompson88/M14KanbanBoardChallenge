@@ -10,7 +10,7 @@
     "dev": "concurrently -k \"npm:watch\" \"npm:serve\"",
     "watch": "tsc -w --preserveWatchOutput",
     "serve": "nodemon",
-    "seed": "node dist/seeds/index.js"
+    "seed": "node -r dotenv/config dist/seeds/index.js dotenv_config_path=.env"
   },
   "nodemonConfig": {
     "watch": [
@@ -26,7 +26,7 @@
     "bcrypt": "^5.1.1",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
-    "dotenv": "^16.4.5",
+    "dotenv": "^16.6.1",
     "express": "^4.19.2",
     "jsonwebtoken": "^9.0.2",
     "pg": "^8.11.5",

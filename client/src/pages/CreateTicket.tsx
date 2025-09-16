@@ -2,7 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createTicket, type TicketUpsert } from '../api/ticketAPI';
 import { retrieveUsers } from '../api/userAPI';
-import type { UserData } from '../interfaces/UserData';
+import type { UserData } from '../interfaces/index.js';
 
 export default function CreateTicket() {
   const navigate = useNavigate();

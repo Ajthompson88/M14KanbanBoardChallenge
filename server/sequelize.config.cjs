@@ -1,26 +1,27 @@
-// server/sequelize.config.cjs
+// sequelize.config.cjs
 require('dotenv').config();
 
-const common = {
-  dialect: 'postgres',
-  logging: false,
-  define: { underscored: true }
-};
+const isProd =
+  process.env.NODE_ENV === 'production' || process.env.RENDER === 'true';
 
-const fromUrl = process.env.DATABASE_URL ? {
-  url: process.env.DATABASE_URL,
-  ...common
-} : {
-  username: process.env.PGUSER || 'app',
-  password: process.env.PGPASSWORD || 'app',
-  database: process.env.PGDATABASE || 'kanban',
-  host: process.env.PGHOST || 'db',
-  port: +(process.env.PGPORT || 5432),
-  ...common
-};
+const sslOpts = isProd || String(process.env.DB_SSL).toLowerCase() === 'true'
+  ? { ssl: { require: true, rejectUnauthorized: false } }
+  : undefined;
 
 module.exports = {
-  development: fromUrl,
-  test: fromUrl,
-  production: fromUrl
+  development: {
+    use_env_variable: process.env.DATABASE_URL ? 'DATABASE_URL' : 'DB_URL',
+    dialect: 'postgres',
+    dialectOptions: sslOpts
+  },
+  test: {
+    use_env_variable: process.env.DATABASE_URL ? 'DATABASE_URL' : 'DB_URL',
+    dialect: 'postgres',
+    dialectOptions: sslOpts
+  },
+  production: {
+    use_env_variable: process.env.DATABASE_URL ? 'DATABASE_URL' : 'DB_URL',
+    dialect: 'postgres',
+    dialectOptions: sslOpts
+  }
 };

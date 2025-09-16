@@ -1,29 +1,48 @@
-import { useState, type FormEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { login as apiLogin } from '../api/authAPI';
-import { useAuth } from '../context/AuthContext'; // assumes you already have this
+// src/pages/Login.tsx
+import { useState, type FormEvent } from "react";
+import { useNavigate, useLocation, type Location } from "react-router-dom";
+import { login as apiLogin } from "../api/authAPI";
+import { useAuth } from "../context/useAuth";
+
+/** When ProtectedRoute bounces, it sets state={{ from: location }}. */
+type LoginRedirectState = { from?: Location } | null;
 
 export default function Login() {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+  const navigate = useNavigate();
+  const location = useLocation() as Location & { state?: LoginRedirectState };
+  const { login } = useAuth();
+
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const navigate = useNavigate();
-  const { login } = useAuth(); // context method: login(token: string)
-
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
+
+    if (!username.trim() || !password) {
+      setError("Please enter username and password.");
+      return;
+    }
+
     setIsLoading(true);
     try {
-      if (!username || !password) throw new Error('Please enter username and password.');
       const token = await apiLogin({ username, password });
-      login(token);                         // update context immediately
-      navigate('/board', { replace: true }); // go to the actual board route
+      if (!token || typeof token !== "string") {
+        throw new Error("Login response missing token.");
+      }
+
+      // Persist in context (also stored by authAPI for Axios interceptor)
+      login(token);
+
+      // Prefer the route we came from (if not /login), else go to /board
+      const fromPath = location.state?.from?.pathname;
+      const dest = fromPath && fromPath !== "/login" ? fromPath : "/board";
+      navigate(dest, { replace: true });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed');
+      setError(err instanceof Error ? err.message : "Login failed");
     } finally {
       setIsLoading(false);
     }
@@ -33,7 +52,9 @@ export default function Login() {
     <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
       <div className="w-full max-w-md">
         <div className="mb-6 flex items-center gap-3">
-          <div className="inline-grid h-10 w-10 place-items-center rounded-xl bg-slate-900 text-white text-sm font-bold">KB</div>
+          <div className="inline-grid h-10 w-10 place-items-center rounded-xl bg-slate-900 text-white text-sm font-bold">
+            KB
+          </div>
           <div>
             <h1 className="text-xl font-semibold text-slate-900">Krazy Kanban Board</h1>
             <p className="text-sm text-slate-500">Sign in to continue</p>
@@ -42,11 +63,17 @@ export default function Login() {
 
         <div className="rounded-2xl bg-white shadow-lg ring-1 ring-slate-200">
           <div className="p-6 sm:p-7">
-            {error && <div className="mb-4 rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">{error}</div>}
+            {error && (
+              <div className="mb-4 rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">
+                {error}
+              </div>
+            )}
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4" noValidate>
               <div>
-                <label htmlFor="username" className="mb-1.5 block text-sm font-medium text-slate-700">Username</label>
+                <label htmlFor="username" className="mb-1.5 block text-sm font-medium text-slate-700">
+                  Username
+                </label>
                 <input
                   id="username"
                   name="username"
@@ -60,14 +87,18 @@ export default function Login() {
 
               <div>
                 <div className="mb-1.5 flex items-center justify-between">
-                  <label htmlFor="password" className="block text-sm font-medium text-slate-700">Password</label>
-                  <a href="/forgot" className="text-xs font-medium text-slate-600 hover:text-slate-900">Forgot?</a>
+                  <label htmlFor="password" className="block text-sm font-medium text-slate-700">
+                    Password
+                  </label>
+                  <a href="/forgot" className="text-xs font-medium text-slate-600 hover:text-slate-900">
+                    Forgot?
+                  </a>
                 </div>
                 <div className="relative">
                   <input
                     id="password"
                     name="password"
-                    type={showPassword ? 'text' : 'password'}
+                    type={showPassword ? "text" : "password"}
                     autoComplete="current-password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
@@ -78,7 +109,7 @@ export default function Login() {
                     type="button"
                     onClick={() => setShowPassword((v) => !v)}
                     className="absolute inset-y-0 right-0 grid w-10 place-items-center text-slate-500 hover:text-slate-700"
-                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    aria-label={showPassword ? "Hide password" : "Show password"}
                   >
                     <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2">
                       <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" />
@@ -94,14 +125,16 @@ export default function Login() {
                   disabled={isLoading}
                   className="inline-flex w-full items-center justify-center rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-slate-800 focus:outline-none focus:ring-4 focus:ring-slate-200 disabled:opacity-60"
                 >
-                  {isLoading ? 'Signing in…' : 'Sign in'}
+                  {isLoading ? "Signing in…" : "Sign in"}
                 </button>
               </div>
             </form>
 
             <p className="mt-4 text-center text-xs text-slate-500">
-              Don’t have an account?{' '}
-              <a href="/signup" className="font-medium text-slate-700 hover:text-slate-900">Create one</a>
+              Don’t have an account?{" "}
+              <a href="/signup" className="font-medium text-slate-700 hover:text-slate-900">
+                Create one
+              </a>
             </p>
           </div>
         </div>

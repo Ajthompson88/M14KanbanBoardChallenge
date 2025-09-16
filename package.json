@@ -13,7 +13,7 @@
     "client:build": "cd client && npm run build",
     "client:dev": "cd client && npm run dev",
     "build:server": "cd server && npm run build",
-    "build": "cd client && npm run build",
+    "build": "concurrently \"cd client && npm run build\" \"cd server && npm run build\"",
     "seed": "cd server && npm run seed",
     "render-build": "npm --prefix server install --no-audit --no-fund && npm --prefix client install --no-audit --no-fund && npm --prefix server run build && npm --prefix client run build",
     "render-start": "npm --prefix server run start",
@@ -31,7 +31,7 @@
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.3",
     "@types/node": "^24.3.1",
-    "@types/react": "^19.1.12",
+    "@types/react": "^19.1.13",
     "@types/react-dom": "^19.1.9",
     "@types/sequelize": "^6.12.0",
     "autoprefixer": "^10.4.21",
@@ -46,5 +46,9 @@
   },
   "engines": {
     "node": "20.x"
+  },
+  "dependencies": {
+    "dotenv": "^17.2.2",
+    "kill": "^0.0.2"
   }
 }

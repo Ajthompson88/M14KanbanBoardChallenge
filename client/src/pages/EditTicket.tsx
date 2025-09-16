@@ -1,100 +1,267 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { retrieveTicket, updateTicket, type TicketUpsert } from '../api/ticketAPI';
-import { retrieveUsers } from '../api/userAPI';
-import type { TicketData } from '../interfaces/TicketData';
-import type { UserData } from '../interfaces/UserData';
+// src/pages/EditTicket.tsx
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type FormEvent,
+} from "react";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { retrieveTicket, updateTicket, type TicketUpsert } from "../api/ticketAPI";
+import { retrieveUsers } from "../api/userAPI";
+import type { TicketData, UserData } from "../interfaces/index.js";
 
-// ✅ Keep helpers local (no exports) to silence react-refresh warnings
-const statusOptions = ['Todo', 'In Progress', 'Done'];
+type LocState = { id?: number; ticketId?: number } | undefined;
 
-function toPayload(form: HTMLFormElement): TicketUpsert {
-  const fd = new FormData(form);
-  return {
-    name: String(fd.get('name') ?? ''),
-    description: String(fd.get('description') ?? ''),
-    status: String(fd.get('status') ?? 'Todo'),
-    assignedUserId: Number(fd.get('assignedUserId') ?? 0),
-  };
+const STATUS_OPTS = ["Todo", "In Progress", "Done"] as const;
+type Status = typeof STATUS_OPTS[number];
+
+function toStatus(input: unknown, fallback: Status = "Todo"): Status {
+  return typeof input === "string" && (STATUS_OPTS as readonly string[]).includes(input)
+    ? (input as Status)
+    : fallback;
+}
+
+function coerceId(paramsId?: string, state?: LocState): number | null {
+  const fromParams = paramsId ? Number(paramsId) : NaN;
+  const fromState =
+    (state?.id ?? state?.ticketId) != null ? Number(state?.id ?? state?.ticketId) : NaN;
+  const id = Number.isFinite(fromParams) ? fromParams : fromState;
+  return Number.isFinite(id) ? id : null;
 }
 
 export default function EditTicket() {
   const navigate = useNavigate();
-  const { state } = useLocation() as { state?: { ticketId?: number } };
-  const ticketId = state?.ticketId;
-  const formRef = useRef<HTMLFormElement>(null);
+  const { id: paramsId } = useParams<{ id: string }>();
+  const { state } = useLocation() as { state?: LocState };
+  const ticketId = coerceId(paramsId, state);
 
-  const [ticket, setTicket] = useState<TicketData | null>(null);
+  const formRef = useRef<HTMLFormElement>(null);
   const [users, setUsers] = useState<UserData[]>([]);
+  const [initial, setInitial] = useState<TicketData | null>(null);
+
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [status, setStatus] = useState<Status>("Todo");
+  const [assignedUserId, setAssignedUserId] = useState<number | "">("");
+
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const dirty = useMemo(() => {
+    if (!initial) return false;
+    return (
+      (name ?? "") !== (initial.name ?? "") ||
+      (description ?? "") !== (initial.description ?? "") ||
+      (status ?? "Todo") !== toStatus(initial.status ?? "Todo") ||
+      Number(assignedUserId || 0) !== Number(initial.assignedUserId || 0)
+    );
+  }, [initial, name, description, status, assignedUserId]);
+
+  // Load ticket + users
   useEffect(() => {
+    let alive = true;
     (async () => {
       try {
-        if (!ticketId) throw new Error('Missing ticket id');
+        setLoading(true);
+        setError(null);
+
+        if (!ticketId) throw new Error("Missing ticket id");
         const [t, u] = await Promise.all([retrieveTicket(ticketId), retrieveUsers()]);
-        setTicket(t);
-        setUsers(u);
+        if (!alive) return;
+
+        setUsers(u ?? []);
+        setInitial(t);
+        setName(t.name ?? "");
+        setDescription(t.description ?? "");
+        setStatus(toStatus(t.status, "Todo"));
+        setAssignedUserId(t.assignedUserId != null ? Number(t.assignedUserId) : (u?.[0]?.id ?? ""));
       } catch (e) {
-        console.error(e);
-        setError('Failed to load ticket or users');
+        if (!alive) return;
+        setError(e instanceof Error ? e.message : "Failed to load ticket or users");
+      } finally {
+        if (alive) setLoading(false);
       }
     })();
+    return () => {
+      alive = false;
+    };
   }, [ticketId]);
 
-  async function onSubmit(e: FormEvent) {
-    e.preventDefault();
+  // Unsaved changes guard
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      if (dirty) {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [dirty]);
+
+  const validate = useCallback((): string | null => {
+    if (!name.trim()) return "Name is required";
+    const assigneeOk = assignedUserId !== "" && Number.isFinite(Number(assignedUserId));
+    if (!assigneeOk) return "Assignee is required";
+    if (!STATUS_OPTS.includes(status)) return "Invalid status";
+    return null;
+  }, [name, status, assignedUserId]);
+
+  const submitLogic = useCallback(async () => {
+    const v = validate();
+    if (v) {
+      setError(v);
+      return;
+    }
+    if (!ticketId) {
+      setError("Missing ticket id");
+      return;
+    }
+    setSaving(true);
     setError(null);
     try {
-      if (!ticketId || !formRef.current) throw new Error('Invalid edit state');
-      const payload = toPayload(formRef.current);
-      if (!payload.name) throw new Error('Name is required');
-      if (!payload.assignedUserId) throw new Error('Assignee is required');
-
+      const payload: TicketUpsert = {
+        name: name.trim(),
+        description: description.trim(),
+        status,
+        assignedUserId: Number(assignedUserId),
+      };
       await updateTicket(ticketId, payload);
-      navigate('/board', { replace: true });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Update failed');
+      navigate("/board", { replace: true });
+    } catch {
+      setError("Update failed");
+    } finally {
+      setSaving(false);
     }
+  }, [validate, ticketId, name, description, status, assignedUserId, navigate]);
+
+  // Submit handler for <form>
+  function handleFormSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    void submitLogic();
   }
 
-  if (!ticket) return <div className="p-4">Loading…</div>;
+  // Ctrl/Cmd+S to save (memoize handler and list it as a dep)
+  const handleKeySave = useCallback(
+    (e: KeyboardEvent) => {
+      const isMac = navigator.platform.toLowerCase().includes("mac");
+      if ((isMac ? e.metaKey : e.ctrlKey) && e.key.toLowerCase() === "s") {
+        e.preventDefault();
+        void submitLogic();
+      }
+    },
+    [submitLogic]
+  );
+
+  useEffect(() => {
+    window.addEventListener("keydown", handleKeySave);
+    return () => window.removeEventListener("keydown", handleKeySave);
+  }, [handleKeySave]);
+
+  if (loading) return <div className="p-4">Loading…</div>;
+
+  if (error) {
+    return (
+      <div className="max-w-xl mx-auto p-4">
+        <div className="rounded-lg border border-rose-200 bg-rose-50 p-4 text-rose-700">
+          <div className="mb-1 text-sm font-semibold">Couldn’t load or save</div>
+          <div className="text-sm">{error}</div>
+        </div>
+        <div className="mt-3">
+          <button
+            className="rounded bg-slate-900 text-white px-4 py-2"
+            onClick={() => navigate(-1)}
+          >
+            Back
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-xl mx-auto p-4">
-      <h2 className="text-xl font-semibold mb-4">Edit Ticket</h2>
-      {error && <p className="mb-3 text-red-600">{error}</p>}
-      <form ref={formRef} onSubmit={onSubmit} className="space-y-3">
-        <input
-          name="name"
-          className="w-full border rounded px-3 py-2"
-          defaultValue={ticket.name ?? ''}
-        />
-        <textarea
-          name="description"
-          className="w-full border rounded px-3 py-2"
-          defaultValue={ticket.description ?? ''}
-        />
-        <select
-          name="status"
-          className="w-full border rounded px-3 py-2"
-          defaultValue={ticket.status ?? 'Todo'}
-        >
-          {statusOptions.map((s) => (
-            <option key={s} value={s}>{s}</option>
-          ))}
-        </select>
-        <select
-          name="assignedUserId"
-          className="w-full border rounded px-3 py-2"
-          defaultValue={ticket.assignedUserId != null ? String(ticket.assignedUserId) : ''}
-        >
-          {users.map((u) => (
-            <option key={u.id} value={String(u.id)}>{u.username}</option>
-          ))}
-        </select>
-        <div className="pt-2">
-          <button className="rounded bg-slate-900 text-white px-4 py-2">Save</button>
+      <div className="mb-4 flex items-center justify-between">
+        <h2 className="text-xl font-semibold">Edit Ticket</h2>
+        <div className="text-xs text-slate-500">
+          {dirty ? "Unsaved changes" : "All changes saved"}
+        </div>
+      </div>
+
+      <form ref={formRef} onSubmit={handleFormSubmit} className="space-y-3">
+        <label className="block">
+          <span className="mb-1 block text-sm font-medium text-slate-700">Title</span>
+          <input
+            className="w-full border rounded px-3 py-2"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Ticket title"
+          />
+        </label>
+
+        <label className="block">
+          <span className="mb-1 block text-sm font-medium text-slate-700">Description</span>
+          <textarea
+            className="w-full border rounded px-3 py-2"
+            rows={4}
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="What needs to be done?"
+          />
+        </label>
+
+        <label className="block">
+          <span className="mb-1 block text-sm font-medium text-slate-700">Status</span>
+          <select
+            className="w-full border rounded px-3 py-2"
+            value={status}
+            onChange={(e) => setStatus(toStatus(e.target.value))}
+          >
+            {STATUS_OPTS.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="block">
+          <span className="mb-1 block text-sm font-medium text-slate-700">Assignee</span>
+          <select
+            className="w-full border rounded px-3 py-2"
+            value={assignedUserId}
+            onChange={(e) => setAssignedUserId(Number(e.target.value))}
+          >
+            <option value="" disabled>
+              Select a user…
+            </option>
+            {users.map((u) => (
+              <option key={u.id ?? `u-${u.username}`} value={String(u.id ?? "")}>
+                {u.username}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <div className="flex items-center gap-2 pt-2">
+          <button
+            type="submit"
+            disabled={saving}
+            className="rounded bg-slate-900 text-white px-4 py-2 disabled:opacity-60"
+          >
+            {saving ? "Saving…" : "Save"}
+          </button>
+          <button
+            type="button"
+            className="rounded border px-4 py-2"
+            onClick={() => navigate("/board")}
+          >
+            Cancel
+          </button>
+          <span className="ml-auto text-xs text-slate-500">Tip: Ctrl/Cmd + S to save</span>
         </div>
       </form>
     </div>

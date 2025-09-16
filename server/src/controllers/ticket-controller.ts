@@ -1,93 +1,135 @@
-import { Request, Response } from 'express';
-import { Ticket } from '../models/ticket.js';
-import { User } from '../models/user.js';
+// FILE: server/src/controllers/ticket-controller.ts
+import type { Request, Response } from "express";
+import type { FindAttributeOptions } from "sequelize";
+import { Ticket, User } from "../models/index.js";
 
-// GET /tickets
-export const getAllTickets = async (_req: Request, res: Response) => {
+const STATUS_OPTS = new Set(["Todo", "In Progress", "Done"]);
+const userAttrs: FindAttributeOptions = ["id", "username", "email"]; // ← mutable, not readonly
+
+function bad(res: Response, code: number, message: string) {
+  return res.status(code).json({ message });
+}
+
+export async function listTickets(_req: Request, res: Response) {
   try {
     const tickets = await Ticket.findAll({
-      include: [
-        {
-          model: User,
-          as: 'assignedUser', // This should match the alias defined in the association
-          attributes: ['username'], // Include only the username attribute
-        },
-      ],
+      include: [{ model: User, as: "assignedUser", attributes: userAttrs }],
+      order: [["id", "ASC"]],
     });
     res.json(tickets);
-  } catch (error: any) {
-    res.status(500).json({ message: error.message });
+  } catch (e) {
+    console.error(e);
+    bad(res, 500, "Failed to fetch tickets");
   }
-};
+}
 
-// GET /tickets/:id
-export const getTicketById = async (req: Request, res: Response) => {
-  const { id } = req.params;
+export async function getTicket(req: Request, res: Response) {
   try {
+    const id = Number(req.params.id);
+    if (!Number.isFinite(id)) return bad(res, 400, "Invalid id");
+
     const ticket = await Ticket.findByPk(id, {
-      include: [
-        {
-          model: User,
-          as: 'assignedUser', // This should match the alias defined in the association
-          attributes: ['username'], // Include only the username attribute
-        },
-      ],
+      include: [{ model: User, as: "assignedUser", attributes: userAttrs }],
     });
-    if (ticket) {
-      res.json(ticket);
-    } else {
-      res.status(404).json({ message: 'Ticket not found' });
-    }
-  } catch (error: any) {
-    res.status(500).json({ message: error.message });
+    if (!ticket) return bad(res, 404, "Not found");
+    res.json(ticket);
+  } catch (e) {
+    console.error(e);
+    bad(res, 500, "Failed to fetch ticket");
   }
-};
+}
 
-// POST /tickets
-export const createTicket = async (req: Request, res: Response) => {
-  console.log("hello");
-  const { name,status, description, assignedUserId } = req.body;
+export async function createTicket(req: Request, res: Response) {
   try {
-    const newTicket = await Ticket.create({ name, status, description, assignedUserId });
-    res.status(201).json(newTicket);
-  } catch (error: any) {
-    res.status(400).json({ message: error.message });
-  }
-};
+    const {
+      name,
+      description = "",
+      status = "Todo",
+      assignedUserId = null,
+    } = (req.body ?? {}) as {
+      name?: string;
+      description?: string;
+      status?: string;
+      assignedUserId?: number | null;
+    };
 
-// PUT /tickets/:id
-export const updateTicket = async (req: Request, res: Response) => {
-  const { id } = req.params;
-  const { name, status, description, assignedUserId } = req.body;
-  try {
-    const ticket = await Ticket.findByPk(id);
-    if (ticket) {
-      ticket.name = name;
-      ticket.status = status;
-      ticket.description = description;
-      ticket.assignedUserId = assignedUserId;
-      await ticket.save();
-      res.json(ticket);
-    } else {
-      res.status(404).json({ message: 'Ticket not found' });
-    }
-  } catch (error: any) {
-    res.status(400).json({ message: error.message });
-  }
-};
+    if (!name?.trim()) return bad(res, 400, "Name is required");
+    if (!STATUS_OPTS.has(status)) return bad(res, 400, "Invalid status");
 
-// DELETE /tickets/:id
-export const deleteTicket = async (req: Request, res: Response) => {
-  const { id } = req.params;
-  try {
-    const ticket = await Ticket.findByPk(id);
-    if (ticket) {
-      await ticket.destroy();
-      res.json({ message: 'Ticket deleted' });
-    } else {
-      res.status(404).json({ message: 'Ticket not found' });
-    }
-  } catch (error: any) {
-    res.status(500).json({ message: error.message });
+    const created = await Ticket.create({
+      name: name.trim(),
+      description: String(description ?? ""),
+      status: status as "Todo" | "In Progress" | "Done",
+      assignedUserId: assignedUserId ?? null,
+    });
+
+    const full = await Ticket.findByPk(created.id, {
+      include: [{ model: User, as: "assignedUser", attributes: userAttrs }],
+    });
+    res.status(201).json(full);
+  } catch (e) {
+    console.error(e);
+    bad(res, 500, "Failed to create ticket");
   }
-};
+}
+
+export async function updateTicket(req: Request, res: Response) {
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isFinite(id)) return bad(res, 400, "Invalid id");
+
+    const t = await Ticket.findByPk(id);
+    if (!t) return bad(res, 404, "Not found");
+
+    const { name, description, status, assignedUserId } = (req.body ?? {}) as {
+      name?: string;
+      description?: string;
+      status?: string;
+      assignedUserId?: number | null;
+    };
+
+    const patch: Partial<{
+      name: string;
+      description: string;
+      status: "Todo" | "In Progress" | "Done";
+      assignedUserId: number | null;
+    }> = {};
+
+    if (name != null) {
+      if (!name.trim()) return bad(res, 400, "Name cannot be empty");
+      patch.name = name.trim();
+    }
+    if (description != null) patch.description = String(description);
+    if (status != null) {
+      if (!STATUS_OPTS.has(status)) return bad(res, 400, "Invalid status");
+      patch.status = status as "Todo" | "In Progress" | "Done";
+    }
+    if (assignedUserId !== undefined) {
+      patch.assignedUserId = assignedUserId ?? null;
+    }
+
+    await t.update(patch);
+
+    const full = await Ticket.findByPk(id, {
+      include: [{ model: User, as: "assignedUser", attributes: userAttrs }],
+    });
+    res.json(full);
+  } catch (e) {
+    console.error(e);
+    bad(res, 500, "Failed to update ticket");
+  }
+}
+
+export async function deleteTicket(req: Request, res: Response) {
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isFinite(id)) return bad(res, 400, "Invalid id");
+    const t = await Ticket.findByPk(id);
+    if (!t) return bad(res, 404, "Not found");
+    await t.destroy();
+    res.json({ message: "Deleted" });
+  } catch (e) {
+    console.error(e);
+    bad(res, 500, "Failed to delete ticket");
+  }
+}

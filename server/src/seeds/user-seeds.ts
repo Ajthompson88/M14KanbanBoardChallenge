@@ -1,15 +1,13 @@
-// src/seeds/user-seeds.ts
-import { User } from '../models/index.js';
+// server/src/seeds/user-seeds.ts
+import { User } from "../models/index.js";
 
-export const seedUsers = async () => {
-  console.log('User initialized?', !!(User as any).options); // should be true
+export async function seedUsers() {
   await User.bulkCreate(
     [
-      { username: 'testUser', password: 'password123' },
-      { username: 'JollyGuru', password: 'password' },
-      { username: 'SunnyScribe', password: 'password' },
-      { username: 'RadiantComet', password: 'password' },
+      { id: 1, username: "andrew",  email: "andrew@example.com",  password: "pass123" },
+      { id: 2, username: "teammate", email: "teammate@example.com", password: "pass123" },
     ],
-    { individualHooks: true }
+    { ignoreDuplicates: true }
   );
-};
+  console.log("✅ Seeded users");
+}

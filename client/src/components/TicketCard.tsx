@@ -1,7 +1,6 @@
 import { Link } from 'react-router-dom';
 import { MouseEventHandler } from 'react';
-import { TicketData } from '../interfaces/TicketData';
-import { ApiMessage } from '../interfaces/ApiMessage';
+import { TicketData, ApiMessage } from '../interfaces/index.js';
 
 interface TicketCardProps {
   ticket: TicketData;
@@ -58,8 +57,7 @@ export default function TicketCard({ ticket, deleteTicket }: TicketCardProps) {
         </div>
         <div className="flex items-center gap-2">
           <Link
-            to="/edit"
-            state={{ id: ticket.id }}
+            to={`/edit/${ticket.id ?? ""}`}
             className="rounded-lg border border-slate-300 px-2.5 py-1 text-xs text-slate-700 hover:bg-slate-100"
           >
             Edit

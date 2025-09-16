@@ -1,25 +1,30 @@
-import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
+// server/src/middleware/auth.ts
+import type { Request, Response, NextFunction } from "express";
+import jwt from "jsonwebtoken";
 
-interface JwtPayload {
-  username: string;
+export type UserPayload = { id: number; email: string; username: string };
+
+const JWT_SECRET = process.env.ACCESS_TOKEN_SECRET as string;
+
+export function authenticateToken(req: Request, res: Response, next: NextFunction) {
+  const header = req.header("authorization") || req.header("Authorization");
+  if (!header?.startsWith("Bearer ")) return res.sendStatus(401);
+
+  const token = header.slice(7);
+  if (!JWT_SECRET) {
+    console.error("Missing ACCESS_TOKEN_SECRET");
+    return res.status(500).json({ message: "Server misconfigured" });
+  }
+
+  jwt.verify(token, JWT_SECRET, (err, decoded) => {
+    if (err) return res.sendStatus(403);
+    const { id, email, username } = (decoded ?? {}) as Partial<UserPayload>;
+    if (typeof id !== "number" || !email || !username) return res.sendStatus(403);
+    (req as any).user = { id, email, username } as UserPayload;
+    next();
+  });
 }
 
-export const authenticateToken = (req: Request, res: Response, next: NextFunction) => {
-  // TODO: verify the token exists and add the user data to the request object
-const headers = req.headers['authorization'];
-  console.log('headers:', headers);
-  if (headers) {
-    const token = headers.split(' ')[1];
-    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET as string, (err, user) => {
-      if (err) {
-        return res.sendStatus(403);
-      }
-      req.user = user as JwtPayload;
-     return next();
-    });
-  }
-  else {
-   res.sendStatus(401);
-  }
-};
+export function getUser(req: Request): UserPayload | undefined {
+  return (req as any).user as UserPayload | undefined;
+}

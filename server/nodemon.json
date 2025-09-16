@@ -1,6 +1,8 @@
 {
-    "watch": ["dist"],
-    "ext": "js,json",
-    "exec": "node dist/server.js"
-  }
-  
+  "watch": ["dist"],
+  "ext": "js,json",
+  "ignore": ["dist/**/*.map"],
+  "delay": "250",
+  "signal": "SIGTERM",
+  "exec": "node dist/server.js"
+}

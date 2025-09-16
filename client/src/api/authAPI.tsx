@@ -1,5 +1,5 @@
 import { api } from './http';
-import type { UserLogin } from '../interfaces/UserLogin';
+import type { UserLogin } from '../interfaces/index.js';
 
 interface LoginResponse { token: string }
 

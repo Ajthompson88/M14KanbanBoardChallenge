@@ -1,6 +1,5 @@
 import TicketCard from './TicketCard';
-import { TicketData } from '../interfaces/TicketData';
-import { ApiMessage } from '../interfaces/ApiMessage';
+import { TicketData, ApiMessage } from '../interfaces/index.js';
 
 type SwimlaneProps = {
   title: string;

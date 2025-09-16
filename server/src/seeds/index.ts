@@ -1,22 +1,23 @@
-// src/seeds/index.ts
-import { sequelize } from '../models/index.js';
-import { seedUsers } from './user-seeds.js';
+// server/src/seeds/index.ts
+import "dotenv/config";
+import { sequelize } from "../config/connection.js";
+import { initModels } from "../models/index.js";
+import { seedUsers } from "./user-seeds.js";
+import { seedTickets } from "./ticket-seeds.js";
 
-const seedAll = async () => {
-  try {
-    console.log('----- DATABASE SYNCING -----');
-    await sequelize.sync({ force: true }); // or { alter: true } in dev
-    console.log('----- DATABASE SYNCED -----');
+async function main() {
+  await sequelize.authenticate();
+  initModels(sequelize);
+  await sequelize.sync({ alter: true });     // or { alter: true } while developing
+  await seedUsers();
+  await seedTickets();
+  await sequelize.close();
+  console.log("🌱 Seeding complete");
+}
 
-    await seedUsers();
+main().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});
 
-    console.log('----- SEED COMPLETE -----');
-  } catch (err) {
-    console.error('Error seeding database:', err);
-    process.exitCode = 1;
-  } finally {
-    await sequelize.close();
-  }
-};
-
-seedAll();
+export {}; // mark this file as a module (silences TS "not a module")

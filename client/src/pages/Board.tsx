@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Swimlane from "../components/Swimlane";
-import { TicketData } from "../interfaces/TicketData";
+import { TicketData, ApiMessage } from "../interfaces/index.js";
 import * as TicketAPI from "../api/ticketAPI";
 import Auth from "../utils/auth";
-import { ApiMessage } from "../interfaces/ApiMessage";
 
 /** --- Types that describe the API surface without using `any` --- */
 type TicketListPayload = TicketData[] | { tickets: TicketData[] };

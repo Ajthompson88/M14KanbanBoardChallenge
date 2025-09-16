@@ -1,18 +1,19 @@
 {
   "compilerOptions": {
     "target": "ES2020",
-    "module": "ES2020",  // Changed from "commonjs"
+    "module": "ES2020",
     "moduleResolution": "node",
+    "jsx": "react-jsx",               // ✅ Tells TS to use React 17+ JSX transform
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
     "rootDir": "src",
     "outDir": "dist",
     "strict": true,
-    "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true,  // Add this
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "types": ["node"],
+    "types": ["node", "react"],       // ✅ Include React types
     "resolveJsonModule": true
   },
-  "include": ["src/**/*.ts"],
+  "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]
 }
