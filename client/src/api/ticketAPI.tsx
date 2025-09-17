@@ -1,36 +1,37 @@
-// src/http/ticketAPI.tsx
-import http from './http';
-import type { TicketData } from '../interfaces/index.js';
+import { api } from "./authAPI";
 
-// Create/Update payload your backend expects
-export type TicketUpsert = {
-  name: string;
-  description: string;
-  status: string;          // "Todo" | "In Progress" | "Done"
-  assignedUserId: number;  // numeric user id
+type Status = "todo" | "in_progress" | "done";
+
+type TicketWrite = {
+  title?: string;
+  description?: string | null;
+  status?: Status;
+  userId?: number | null;
 };
 
-export const fetchAllTickets = async (): Promise<TicketData[]> => {
-  const { data } = await http.get('/tickets');
-  return data as TicketData[];
-};
+export async function listTickets() {
+  const { data } = await api.get("/tickets");
+  return data;
+}
 
-export const retrieveTicket = async (id: number): Promise<TicketData> => {
-  const { data } = await http.get(`/tickets/${id}`);
-  return data as TicketData;
-};
+export async function retrieveTicket(id: number) {
+  const { data } = await api.get(`/tickets/${id}`);
+  return data;
+}
 
-export const createTicket = async (payload: TicketUpsert): Promise<TicketData> => {
-  const { data } = await http.post('/tickets', payload);
-  return data as TicketData;
-};
+export async function createTicket(payload: TicketWrite) {
+  const { data } = await api.post("/tickets", payload);
+  return data;
+}
 
-export const updateTicket = async (id: number, payload: TicketUpsert): Promise<TicketData> => {
-  const { data } = await http.put(`/tickets/${id}`, payload);
-  return data as TicketData;
-};
+export async function updateTicket(id: number, payload: TicketWrite) {
+  const { data } = await api.put(`/tickets/${id}`, payload);
+  return data;
+}
 
-export const deleteTicketById = async (id: number) => {
-  const { data } = await http.delete(`/tickets/${id}`);
-  return data as { message: string };
-};
+export async function deleteTicket(id: number) {
+  const { data } = await api.delete(`/tickets/${id}`);
+  return data;
+}
+
+export default { listTickets, retrieveTicket, createTicket, updateTicket, deleteTicket };

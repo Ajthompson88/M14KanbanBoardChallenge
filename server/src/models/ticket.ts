@@ -1,10 +1,6 @@
 import {
-  DataTypes,
-  Model,
-  Sequelize,
-  InferAttributes,
-  InferCreationAttributes,
-  CreationOptional,
+  Sequelize, DataTypes, Model,
+  InferAttributes, InferCreationAttributes, CreationOptional,
 } from 'sequelize';
 
 export type TicketStatus = 'todo' | 'in_progress' | 'done';
@@ -12,25 +8,25 @@ export type TicketStatus = 'todo' | 'in_progress' | 'done';
 export default function createTicketModel(sequelize: Sequelize) {
   class Ticket extends Model<InferAttributes<Ticket>, InferCreationAttributes<Ticket>> {
     declare id: CreationOptional<number>;
-    declare title: string;
-    declare description: CreationOptional<string | null>;
-    declare status: CreationOptional<TicketStatus>;
-    declare userId: CreationOptional<number | null>;
+    declare title: string;                      // matches DB column "title"
+    declare description: string | null;
+    declare status: TicketStatus;               // varchar in DB is fine
+    declare userId: number | null;              // matches DB column "userId"
+    declare createdAt: CreationOptional<Date>;
+    declare updatedAt: CreationOptional<Date>;
   }
 
   Ticket.init(
     {
       id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
-      title: { type: DataTypes.STRING, allowNull: false },
+      title: { type: DataTypes.STRING(255), allowNull: false },
       description: { type: DataTypes.TEXT, allowNull: true },
-      status: {
-        type: DataTypes.ENUM('todo', 'in_progress', 'done'),
-        allowNull: false,
-        defaultValue: 'todo',
-      },
+      status: { type: DataTypes.STRING(20), allowNull: false, defaultValue: 'todo' },
       userId: { type: DataTypes.INTEGER, allowNull: true },
+      createdAt: { type: DataTypes.DATE, allowNull: false },
+      updatedAt: { type: DataTypes.DATE, allowNull: false },
     },
-    { sequelize, modelName: 'Ticket', tableName: 'tickets', timestamps: true }
+    { sequelize, tableName: 'tickets', modelName: 'Ticket', timestamps: true }
   );
 
   return Ticket;

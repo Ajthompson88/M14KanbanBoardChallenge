@@ -1,22 +1,8 @@
-// src/api/userAPI.tsx
-import axios from "axios";
-import  http  from "./http";
+import { api } from "./authAPI";
 
-export type UserDTO = { id: number; email: string; username: string };
-
-export async function retrieveUsers(): Promise<UserDTO[]> {
-  try {
-    const { data } = await http.get<UserDTO[]>("/users"); // baseURL adds /api
-    return data ?? [];
-  } catch (e: unknown) {
-    if (axios.isAxiosError(e)) {
-      const status = e.response?.status;
-      const msg =
-        status === 401
-          ? "You are not authorized. Please log in again."
-          : e.message || "Failed to load users";
-      throw new Error(msg);
-    }
-    throw e instanceof Error ? e : new Error("Failed to load users");
-  }
+export async function retrieveUsers() {
+  const { data } = await api.get("/users");
+  return data;
 }
+
+export default { retrieveUsers };

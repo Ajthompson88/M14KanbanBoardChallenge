@@ -1,11 +1,6 @@
-// server/src/models/user.ts
 import {
-  DataTypes,
-  Model,
-  Sequelize,
-  InferAttributes,
-  InferCreationAttributes,
-  CreationOptional,
+  Sequelize, DataTypes, Model,
+  InferAttributes, InferCreationAttributes, CreationOptional,
 } from 'sequelize';
 
 export default function createUserModel(sequelize: Sequelize) {
@@ -13,18 +8,21 @@ export default function createUserModel(sequelize: Sequelize) {
     declare id: CreationOptional<number>;
     declare email: string;
     declare username: string;
-    declare password_hash: string; // JS name
+    declare password_hash: string;   // now matches DB column name
+    declare createdAt: CreationOptional<Date>;
+    declare updatedAt: CreationOptional<Date>;
   }
 
   User.init(
     {
       id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
-      email: { type: DataTypes.STRING, allowNull: false, unique: true },
-      username: { type: DataTypes.STRING, allowNull: false, unique: true },
-      // 👇 map to existing DB column name
-      password_hash: { type: DataTypes.STRING, allowNull: false, field: 'password' },
+      email: { type: DataTypes.STRING(255), allowNull: false, unique: true },
+      username: { type: DataTypes.STRING(64), allowNull: false, unique: true },
+      password_hash: { type: DataTypes.STRING(255), allowNull: false },
+      createdAt: { type: DataTypes.DATE, allowNull: false },
+      updatedAt: { type: DataTypes.DATE, allowNull: false },
     },
-    { sequelize, modelName: 'User', tableName: 'users', timestamps: true }
+    { sequelize, tableName: 'users', modelName: 'User', timestamps: true }
   );
 
   return User;

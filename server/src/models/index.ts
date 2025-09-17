@@ -1,14 +1,24 @@
+// server/src/models/index.ts
 import { Sequelize } from 'sequelize';
 import createUserModel from './user.js';
 import createTicketModel from './ticket.js';
 
-const DB_URL = process.env.DATABASE_URL;
-if (!DB_URL) throw new Error('DATABASE_URL missing');
+const rawUrl = process.env.DATABASE_URL || process.env.DB_URL;
+if (!rawUrl) throw new Error('DATABASE_URL missing');
+
+const isProd = process.env.NODE_ENV === 'production' || process.env.RENDER === 'true';
+const shouldUseSSL = isProd || String(process.env.DB_SSL || '').toLowerCase() === 'true';
+
+let DB_URL = rawUrl;
+// Append sslmode=require if we want SSL and it's not already specified
+if (shouldUseSSL && !/sslmode=(require|disable)/i.test(DB_URL)) {
+  DB_URL += (DB_URL.includes('?') ? '&' : '?') + 'sslmode=require';
+}
 
 export const sequelize = new Sequelize(DB_URL, {
   dialect: 'postgres',
-  dialectOptions: DB_URL.includes('render.com') ? { ssl: { require: true } } : undefined,
   logging: false,
+  dialectOptions: shouldUseSSL ? { ssl: { require: true, rejectUnauthorized: false } } : undefined,
 });
 
 export const User = createUserModel(sequelize);

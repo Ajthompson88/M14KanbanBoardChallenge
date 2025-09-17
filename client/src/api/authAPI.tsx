@@ -1,7 +1,9 @@
-// client/src/api/authAPI.tsx
-import axios from 'axios';
-console.log('[authAPI] loaded');
-type LoginPayload = {
+import axios from "axios";
+
+console.log("[authAPI] loaded");
+
+// ---------- Types ----------
+export type LoginPayload = {
   email?: string;
   username?: string;
   password: string;
@@ -12,17 +14,14 @@ export type LoginResponse = {
   user: { id: number; username: string; email: string };
 };
 
-// Vite dev proxy will forward /api -> http://localhost:3001
-const api = axios.create({
-  baseURL: '/api',
-  withCredentials: true, // fine to keep even if you use header tokens
+// ---------- Axios instance (shared) ----------
+export const api = axios.create({
+  baseURL: "/api",          // Vite proxy -> http://127.0.0.1:3001
+  withCredentials: true,
 });
 
-// ───────────────────────────────────────────────
-// Token helpers
-// ───────────────────────────────────────────────
-
-const TOKEN_KEY = 'auth_token';
+// ---------- Token helpers ----------
+const TOKEN_KEY = "auth_token";
 
 export function getToken(): string | null {
   return localStorage.getItem(TOKEN_KEY);
@@ -31,17 +30,17 @@ export function getToken(): string | null {
 export function setToken(token: string | null) {
   if (token) {
     localStorage.setItem(TOKEN_KEY, token);
-    api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
   } else {
     localStorage.removeItem(TOKEN_KEY);
-    delete api.defaults.headers.common['Authorization'];
+    delete api.defaults.headers.common["Authorization"];
   }
 }
 
 // Initialize header from any existing token on page load
 const existing = getToken();
 if (existing) {
-  api.defaults.headers.common['Authorization'] = `Bearer ${existing}`;
+  api.defaults.headers.common["Authorization"] = `Bearer ${existing}`;
 }
 
 // Optional: auto-logout on 401
@@ -55,19 +54,12 @@ api.interceptors.response.use(
   }
 );
 
-// ───────────────────────────────────────────────
-// Auth calls
-// ───────────────────────────────────────────────
-
+// ---------- Auth calls ----------
 export async function login(payload: LoginPayload): Promise<LoginResponse> {
-  const { data } = await api.post<LoginResponse>('/auth/login', payload);
-
-  // Expecting { token, user } from server
+  const { data } = await api.post<LoginResponse>("/auth/login", payload);
   if (!data?.token) {
-    console.error('[authAPI] Login response missing token!', data);
-    throw new Error('Login succeeded but no token was returned by the server.');
+    throw new Error("Login succeeded but no token was returned by the server.");
   }
-
   setToken(data.token);
   return data;
 }
@@ -77,8 +69,6 @@ export async function logout() {
 }
 
 export async function me() {
-  const { data } = await api.get('/auth/me');
+  const { data } = await api.get("/auth/me");
   return data;
 }
-
-export { api };

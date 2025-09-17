@@ -1,3 +1,4 @@
+// Vite configuration file
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from '@tailwindcss/vite';
@@ -12,11 +13,6 @@ export default defineConfig({
       "/api": {
         target: "http://127.0.0.1:3001",
         changeOrigin: true,
-      },
-      "/auth": {
-        target: "http://localhost:3001",
-        changeOrigin: true,
-        secure: false,
       },
     },
   },
