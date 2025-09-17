@@ -1,21 +1,31 @@
-// src/api/http.ts
-import axios, { AxiosHeaders, type InternalAxiosRequestConfig } from "axios";
+import axios from 'axios';
 
-export const api = axios.create({
-  baseURL: "/api",          // Vite proxy → server
-  withCredentials: false,   // using Bearer tokens, not cookies
+// point at your API (adjust if different)
+const API_BASE =
+  import.meta.env.VITE_API_URL ?? 'http://127.0.0.1:13000';
+
+const http = axios.create({
+  baseURL: API_BASE,
+  withCredentials: false, // set true ONLY if you're using cookie auth
 });
 
-// Attach Authorization header if we have a token (typed, no `any`)
-api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
-  const token = localStorage.getItem("auth_token");
-  if (token) {
-    const value = `Bearer ${token}`;
-    // Axios v1 headers can be an AxiosHeaders instance or a plain object
-    if (!(config.headers instanceof AxiosHeaders)) {
-      config.headers = new AxiosHeaders(config.headers ?? {});
-    }
-    (config.headers as AxiosHeaders).set("Authorization", value);
-  }
+// attach Bearer token on every request
+http.interceptors.request.use((config) => {
+  const token = localStorage.getItem('accessToken'); // or pull from your AuthContext
+  if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
+
+// optional: handle 401s cleanly (redirect to login, clear token, etc.)
+http.interceptors.response.use(
+  (res) => res,
+  (err) => {
+    if (err?.response?.status === 401) {
+      localStorage.removeItem('accessToken');
+      // e.g., window.location.href = '/login';
+    }
+    return Promise.reject(err);
+  }
+);
+
+export default http;

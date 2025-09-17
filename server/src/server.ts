@@ -2,66 +2,87 @@
 import 'dotenv/config';
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-import { initDB } from './config/connection.js';
-import routes from './routes/index.js'; // <-- single router that mounts /api/auth (public) and /api/* (protected)
+// --- DB init (your existing connection bootstrap) ---
+import './config/connection.js'; // keep your sequelize init side-effects
 
+// --- Routers ---
+import { router as ticketRouter } from './routes/api/ticket-routes.js';
+import { router as userRouter }   from './routes/api/user-routes.js';
+import { router as authRouter } from './routes/api/auth-routes.js';
+
+// ----- App setup -----
 const app = express();
-const PORT = Number(process.env.PORT ?? 3001);
 
-// ---- middleware
-app.use(cors());
+// Render/Proxies
+app.set('trust proxy', 1);
+
+// CORS:
+// If you deploy client & API together (same origin), you can leave origin: true.
+// If separate, list allowed origins explicitly.
+app.use(
+  cors({
+    origin: true,
+    credentials: true,
+  })
+);
+
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 
-// ---- health checks
-app.get('/health', (_req, res) => res.json({ ok: true }));
-app.get('/api/health', (_req, res) => res.json({ ok: true }));
+// ----- Health checks -----
+app.get('/health', (_req, res) => res.status(200).json({ ok: true }));
+app.get('/ready', (_req, res) => res.status(200).json({ ready: true }));
 
-// ---- mount all routes once
-// routes/index.ts should do:
-//   router.use('/api/auth', authRoutes)                // public
-//   router.use('/api', authenticateToken, apiRoutes)   // protected (tickets/users)
-app.use('/', routes);
+// ----- API routes (mount BEFORE static) -----
+app.use('/tickets', ticketRouter);
+app.use('/users',   userRouter);
+app.use('/auth',    authRouter);
 
-// 404 for unknown API routes (after routers)
-app.use('/api/*', (_req, res) => res.status(404).json({ error: 'Not found' }));
+// If you like a common prefix, you can instead do:
+// app.use('/api/tickets', ticketsRouter); etc.
+// and adjust the client to call /api/*
 
-// Centralized JSON error handler
-app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
-  const e = err as { status?: number; message?: string; stack?: string };
-  const status = e?.status ?? 500;
-  const isDev = process.env.NODE_ENV !== 'production';
-  console.error('❌ Express error:', e);
-  res.status(status).json({
-    error: e?.message ?? 'Internal Server Error',
-    ...(isDev ? { stack: e?.stack } : {}),
-  });
+// ----- Error handling: always JSON -----
+app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+  const status = err.status || err.statusCode || 500;
+  const message =
+    err.message ||
+    (status === 401 ? 'Unauthorized' : 'Something went wrong');
+  res.status(status).json({ error: message });
 });
 
-async function start() {
-  try {
-    await initDB(); // connects, inits models, syncs
-    const server = app.listen(PORT, () =>
-      console.log(`🚀 Server running on :${PORT}`)
-    );
+// ===== Serve React build (client/dist) =====
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-    // graceful shutdown
-    ['SIGINT', 'SIGTERM'].forEach((sig) => {
-      process.on(sig as NodeJS.Signals, () => {
-        console.log('🛑 Received %s, closing server...', sig);
-        server.close(() => {
-          console.log('✅ Server closed.');
-          process.exit(0);
-        });
-      });
-    });
-  } catch (e) {
-    console.error('💥 Fatal startup error:', e);
-    process.exit(1);
+// When compiled, this file sits at server/dist/server.js
+// So client/dist relative path is: ../../client/dist
+const clientDist = path.join(__dirname, '../../client/dist');
+
+// Serve static files
+app.use(express.static(clientDist));
+
+// SPA fallback for any non-API route
+app.get('*', (req, res, next) => {
+  // allow API 404s to pass through
+  if (
+    req.path.startsWith('/tickets') ||
+    req.path.startsWith('/users') ||
+    req.path.startsWith('/auth') ||
+    req.path.startsWith('/health') ||
+    req.path.startsWith('/ready')
+  ) {
+    return next();
   }
-}
+  res.sendFile(path.join(clientDist, 'index.html'));
+});
 
-start();
-
-export default app;
+// ----- Start server -----
+const PORT = Number(process.env.PORT) || 10000;
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on :${PORT}`);
+});

@@ -1,5 +1,5 @@
-// src/api/ticketAPI.tsx
-import { api } from './http';
+// src/http/ticketAPI.tsx
+import http from './http';
 import type { TicketData } from '../interfaces/index.js';
 
 // Create/Update payload your backend expects
@@ -11,26 +11,26 @@ export type TicketUpsert = {
 };
 
 export const fetchAllTickets = async (): Promise<TicketData[]> => {
-  const { data } = await api.get('/tickets');
+  const { data } = await http.get('/tickets');
   return data as TicketData[];
 };
 
 export const retrieveTicket = async (id: number): Promise<TicketData> => {
-  const { data } = await api.get(`/tickets/${id}`);
+  const { data } = await http.get(`/tickets/${id}`);
   return data as TicketData;
 };
 
 export const createTicket = async (payload: TicketUpsert): Promise<TicketData> => {
-  const { data } = await api.post('/tickets', payload);
+  const { data } = await http.post('/tickets', payload);
   return data as TicketData;
 };
 
 export const updateTicket = async (id: number, payload: TicketUpsert): Promise<TicketData> => {
-  const { data } = await api.put(`/tickets/${id}`, payload);
+  const { data } = await http.put(`/tickets/${id}`, payload);
   return data as TicketData;
 };
 
 export const deleteTicketById = async (id: number) => {
-  const { data } = await api.delete(`/tickets/${id}`);
+  const { data } = await http.delete(`/tickets/${id}`);
   return data as { message: string };
 };
