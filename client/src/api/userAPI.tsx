@@ -1,12 +1,12 @@
 // src/api/userAPI.tsx
 import axios from "axios";
-import { api } from "./http";
+import  http  from "./http";
 
 export type UserDTO = { id: number; email: string; username: string };
 
 export async function retrieveUsers(): Promise<UserDTO[]> {
   try {
-    const { data } = await api.get<UserDTO[]>("/users"); // baseURL adds /api
+    const { data } = await http.get<UserDTO[]>("/users"); // baseURL adds /api
     return data ?? [];
   } catch (e: unknown) {
     if (axios.isAxiosError(e)) {

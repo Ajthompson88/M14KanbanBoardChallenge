@@ -7,12 +7,12 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 // --- DB init (your existing connection bootstrap) ---
-import './config/connection.js'; // keep your sequelize init side-effects
+import './config/connection.js';
 
 // --- Routers ---
-import { router as ticketRouter } from './routes/api/ticket-routes.js';
-import { router as userRouter }   from './routes/api/user-routes.js';
-import { router as authRouter } from './routes/api/auth-routes.js';
+import { ticketRouter } from './routes/api/ticket-routes.js';
+import { userRouter } from './routes/api/user-routes.js';
+import  authRouter  from './routes';  // This should now work
 
 // ----- App setup -----
 const app = express();

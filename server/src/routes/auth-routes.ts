@@ -5,7 +5,7 @@ import bcrypt from 'bcrypt';
 
 // 👇 IMPORTANT: from routes/api to models is two levels up
 // NodeNext ESM: keep the .js extension in TS for compiled modules
-import { User } from '../../models/index.js';
+import { User } from '../models/index.js';
 
 const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET as string;
