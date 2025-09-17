@@ -37,7 +37,7 @@ function toUiTicket(t: ServerTicket): UiTicket {
     name: t.title,
     description: t.description ?? "",
     status: toUiStatus(t.status),
-    assignedUserId: t.userId, // number | null matches most UI typings
+    assignedUserId: t.userId,
     assignedUser: assigned,
   } as UiTicket;
 }
@@ -146,24 +146,24 @@ export default function Board() {
 
   if (loading) {
     return (
-      <div className="min-h-screen grid place-items-center text-slate-600">Loading board…</div>
+      <div className="min-h-screen grid place-items-center text-[var(--brand-muted)]">Loading board…</div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <header className="flex items-center justify-between px-6 py-4">
+    <div className="min-h-screen bg-[var(--brand-bg)] text-[var(--brand-text)]">
+      <header className="flex items-center justify-between px-6 py-4 bg-[var(--brand-panel)]/60 backdrop-blur-sm ring-1 ring-white/10">
         <div className="flex items-center gap-3">
-          <div className="inline-grid h-9 w-9 place-items-center rounded-lg bg-slate-900 text-white text-xs font-bold">
+          <div className="inline-grid h-9 w-9 place-items-center rounded-lg bg-[var(--brand-accent)] text-black text-xs font-bold ring-1 ring-white/10">
             KB
           </div>
-          <h1 className="text-lg font-semibold text-slate-900">ShadowStack KanBan Board</h1>
+          <h1 className="text-lg font-semibold">ShadowStack Kanban Board</h1>
         </div>
 
         <div className="flex items-center gap-3">
           <button
             onClick={() => setShowAdd((v) => !v)}
-            className="rounded-lg bg-slate-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-800"
+            className="rounded-lg bg-[var(--brand-accent)] px-3 py-1.5 text-sm font-medium text-black hover:bg-[var(--brand-accent-2)] transition-colors"
           >
             {showAdd ? "Close" : "Add"}
           </button>
@@ -171,7 +171,7 @@ export default function Board() {
       </header>
 
       {error && (
-        <div className="mx-6 mb-3 rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">
+        <div className="mx-6 mt-3 mb-3 rounded-lg border border-rose-500/30 bg-rose-500/10 p-3 text-sm text-rose-300">
           {error}{" "}
           {error.includes("sign in") && (
             <button
@@ -185,23 +185,23 @@ export default function Board() {
       )}
 
       {showAdd && (
-        <div className="mx-6 mb-4 rounded-xl bg-white ring-1 ring-slate-200 shadow-sm p-4">
+        <div className="mx-6 mb-4 rounded-xl bg-[var(--brand-panel)]/70 ring-1 ring-[var(--brand-ring)] shadow-sm p-4">
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="sm:col-span-1">
-              <label className="mb-1 block text-sm text-slate-600">Title</label>
+              <label className="mb-1 block text-sm text-[var(--brand-muted)]">Title</label>
               <input
                 value={newTitle}
                 onChange={(e) => setNewTitle(e.target.value)}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-slate-400 focus:ring-4 focus:ring-slate-100"
+                className="w-full rounded-lg border border-white/10 bg-[var(--brand-panel)] px-3 py-2 outline-none text-[var(--brand-text)] placeholder-zinc-500 focus:border-[var(--brand-accent)] focus:ring-4 focus:ring-[var(--brand-accent)]/15"
                 placeholder="Short summary"
               />
             </div>
             <div className="sm:col-span-1">
-              <label className="mb-1 block text-sm text-slate-600">Description</label>
+              <label className="mb-1 block text-sm text-[var(--brand-muted)]">Description</label>
               <input
                 value={newDesc}
                 onChange={(e) => setNewDesc(e.target.value)}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-slate-400 focus:ring-4 focus:ring-slate-100"
+                className="w-full rounded-lg border border-white/10 bg-[var(--brand-panel)] px-3 py-2 outline-none text-[var(--brand-text)] placeholder-zinc-500 focus:border-[var(--brand-accent)] focus:ring-4 focus:ring-[var(--brand-accent)]/15"
                 placeholder="Optional details"
               />
             </div>
@@ -209,7 +209,7 @@ export default function Board() {
           <div className="mt-3">
             <button
               onClick={createTicket}
-              className="rounded-lg bg-slate-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-800"
+              className="rounded-lg bg-[var(--brand-accent)] px-3 py-1.5 text-sm font-medium text-black hover:bg-[var(--brand-accent-2)]"
             >
               Create
             </button>

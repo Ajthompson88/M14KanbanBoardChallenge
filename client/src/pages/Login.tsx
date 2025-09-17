@@ -47,17 +47,10 @@ export default function Login() {
 
     setIsLoading(true);
     try {
-      // apiLogin returns { token, user }
-      const { token /*, user */ } = await apiLogin({ username, password });
-
-      if (!token) {
-        throw new Error("Login response missing token.");
-      }
-
-      // Persist in context (authAPI already saved token to Axios header + localStorage)
+      const { token } = await apiLogin({ username, password });
+      if (!token) throw new Error("Login response missing token.");
       login(token);
 
-      // Prefer the route we came from (if not /login), else go to /board
       const fromPath = location.state?.from?.pathname;
       const dest = fromPath && fromPath !== "/login" ? fromPath : "/board";
       navigate(dest, { replace: true });
@@ -69,29 +62,29 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
+    <div className="min-h-screen bg-[var(--brand-bg)] text-[var(--brand-text)] flex items-center justify-center px-4">
       <div className="w-full max-w-md">
         <div className="mb-6 flex items-center gap-3">
-          <div className="inline-grid h-10 w-10 place-items-center rounded-xl bg-slate-900 text-white text-sm font-bold">
+          <div className="inline-grid h-10 w-10 place-items-center rounded-xl bg-[var(--brand-accent)] text-black text-sm font-bold">
             KB
           </div>
           <div>
-            <h1 className="text-xl font-semibold text-slate-900">ShadowStack KanBan Board </h1>
-            <p className="text-sm text-slate-500">Sign in to continue</p>
+            <h1 className="text-xl font-semibold text-[var(--brand-text)]">ShadowStack Kanban</h1>
+            <p className="text-sm text-[var(--brand-muted)]">Sign in to continue</p>
           </div>
         </div>
 
-        <div className="rounded-2xl bg-white shadow-lg ring-1 ring-slate-200">
+        <div className="rounded-2xl bg-[var(--brand-panel)]/80 shadow-lg ring-1 ring-[var(--brand-ring)]">
           <div className="p-6 sm:p-7">
             {error && (
-              <div className="mb-4 rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">
+              <div className="mb-4 rounded-lg border border-rose-500/30 bg-rose-500/10 p-3 text-sm text-rose-300">
                 {error}
               </div>
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4" noValidate>
               <div>
-                <label htmlFor="username" className="mb-1.5 block text-sm font-medium text-slate-700">
+                <label htmlFor="username" className="mb-1.5 block text-sm font-medium text-[var(--brand-muted)]">
                   Username
                 </label>
                 <input
@@ -100,17 +93,17 @@ export default function Login() {
                   autoComplete="username"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  className="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 placeholder-slate-400 outline-none transition focus:border-slate-400 focus:ring-4 focus:ring-slate-100"
+                  className="block w-full rounded-lg border border-white/10 bg-[var(--brand-panel)] px-3 py-2 text-[var(--brand-text)] placeholder-zinc-500 outline-none transition focus:border-[var(--brand-accent)] focus:ring-4 focus:ring-[var(--brand-accent)]/15"
                   placeholder="yourname"
                 />
               </div>
 
               <div>
                 <div className="mb-1.5 flex items-center justify-between">
-                  <label htmlFor="password" className="block text-sm font-medium text-slate-700">
+                  <label htmlFor="password" className="block text-sm font-medium text-[var(--brand-muted)]">
                     Password
                   </label>
-                  <a href="/forgot" className="text-xs font-medium text-slate-600 hover:text-slate-900">
+                  <a href="/forgot" className="text-xs font-medium text-[var(--brand-muted)] hover:text-[var(--brand-text)]">
                     Forgot?
                   </a>
                 </div>
@@ -122,13 +115,13 @@ export default function Login() {
                     autoComplete="current-password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 pr-10 text-slate-900 placeholder-slate-400 outline-none transition focus:border-slate-400 focus:ring-4 focus:ring-slate-100"
+                    className="block w-full rounded-lg border border-white/10 bg-[var(--brand-panel)] px-3 py-2 pr-10 text-[var(--brand-text)] placeholder-zinc-500 outline-none transition focus:border-[var(--brand-accent)] focus:ring-4 focus:ring-[var(--brand-accent)]/15"
                     placeholder="••••••••"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword((v) => !v)}
-                    className="absolute inset-y-0 right-0 grid w-10 place-items-center text-slate-500 hover:text-slate-700"
+                    className="absolute inset-y-0 right-0 grid w-10 place-items-center text-[var(--brand-muted)] hover:text-[var(--brand-text)]"
                     aria-label={showPassword ? "Hide password" : "Show password"}
                   >
                     <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2">
@@ -143,16 +136,16 @@ export default function Login() {
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="inline-flex w-full items-center justify-center rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-slate-800 focus:outline-none focus:ring-4 focus:ring-slate-200 disabled:opacity-60"
+                  className="inline-flex w-full items-center justify-center rounded-lg bg-[var(--brand-accent)] hover:bg-[var(--brand-accent-2)] px-4 py-2.5 text-sm font-medium text-black transition focus:outline-none focus:ring-4 focus:ring-[var(--brand-accent)]/30 disabled:opacity-60"
                 >
                   {isLoading ? "Signing in…" : "Sign in"}
                 </button>
               </div>
             </form>
 
-            <p className="mt-4 text-center text-xs text-slate-500">
+            <p className="mt-4 text-center text-xs text-[var(--brand-muted)]">
               Don’t have an account{" "}
-              <a href="/signup" className="font-medium text-slate-700 hover:text-slate-900">
+              <a href="/signup" className="font-medium text-[var(--brand-text)] hover:opacity-80">
                 Create one
               </a>
             </p>
