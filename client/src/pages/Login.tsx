@@ -76,7 +76,7 @@ export default function Login() {
             KB
           </div>
           <div>
-            <h1 className="text-xl font-semibold text-slate-900">Krazy Kanban Board</h1>
+            <h1 className="text-xl font-semibold text-slate-900">ShadowStack KanBan Board </h1>
             <p className="text-sm text-slate-500">Sign in to continue</p>
           </div>
         </div>

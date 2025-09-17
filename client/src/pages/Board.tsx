@@ -157,7 +157,7 @@ export default function Board() {
           <div className="inline-grid h-9 w-9 place-items-center rounded-lg bg-slate-900 text-white text-xs font-bold">
             KB
           </div>
-          <h1 className="text-lg font-semibold text-slate-900">Krazy Kanban Board</h1>
+          <h1 className="text-lg font-semibold text-slate-900">ShadowStack KanBan Board</h1>
         </div>
 
         <div className="flex items-center gap-3">
