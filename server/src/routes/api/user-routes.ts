@@ -1,27 +1,13 @@
-import express from 'express';
-import {
-getUsers,
-getUserById,
-createUser,
-updateUser,
-deleteUser,
-} from '../../controllers/user-controller.js';
+// server/src/routes/api/users-routes.ts
+import { Router } from 'express';
+import { listUsers, getUserById, createUser, updateUser, deleteUser } from '../../controllers/user-controller.js';
 
-const router = express.Router();
-
-// GET /users - Get all users
-router.get('/', getUsers);
-
-// GET /users/:id - Get a user by id
+const router = Router();
+router.get('/', listUsers);
 router.get('/:id', getUserById);
-
-// POST /users - Create a new user
 router.post('/', createUser);
-
-// PUT /users/:id - Update a user by id
 router.put('/:id', updateUser);
-
-// DELETE /users/:id - Delete a user by id
+router.patch('/:id', updateUser);
 router.delete('/:id', deleteUser);
 
-export { router as userRouter };
+export default router;

@@ -1,11 +1,29 @@
-// src/pages/Login.tsx
+// client/src/pages/Login.tsx
 import { useState, type FormEvent } from "react";
 import { useNavigate, useLocation, type Location } from "react-router-dom";
 import { login as apiLogin } from "../api/authAPI";
 import { useAuth } from "../context/useAuth";
+import type { AxiosError } from "axios";
 
 /** When ProtectedRoute bounces, it sets state={{ from: location }}. */
 type LoginRedirectState = { from?: Location } | null;
+
+// Shape of error bodies your API might return
+type ApiErrorBody = { message?: string; error?: string };
+
+// Narrow unknown -> AxiosError<ApiErrorBody>
+function isAxiosError(err: unknown): err is AxiosError<ApiErrorBody> {
+  return typeof err === "object" && err !== null && "isAxiosError" in err;
+}
+
+function extractErrorMessage(err: unknown): string {
+  if (isAxiosError(err)) {
+    const data = err.response?.data;
+    return data?.message ?? data?.error ?? err.message ?? "Login failed";
+  }
+  if (err instanceof Error) return err.message;
+  return "Login failed";
+}
 
 export default function Login() {
   const navigate = useNavigate();
@@ -29,20 +47,22 @@ export default function Login() {
 
     setIsLoading(true);
     try {
-      const token = await apiLogin({ username, password });
-      if (!token || typeof token !== "string") {
+      // apiLogin returns { token, user }
+      const { token /*, user */ } = await apiLogin({ username, password });
+
+      if (!token) {
         throw new Error("Login response missing token.");
       }
 
-      // Persist in context (also stored by authAPI for Axios interceptor)
+      // Persist in context (authAPI already saved token to Axios header + localStorage)
       login(token);
 
       // Prefer the route we came from (if not /login), else go to /board
       const fromPath = location.state?.from?.pathname;
       const dest = fromPath && fromPath !== "/login" ? fromPath : "/board";
       navigate(dest, { replace: true });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Login failed");
+    } catch (err: unknown) {
+      setError(extractErrorMessage(err));
     } finally {
       setIsLoading(false);
     }
@@ -131,7 +151,7 @@ export default function Login() {
             </form>
 
             <p className="mt-4 text-center text-xs text-slate-500">
-              Don’t have an account?{" "}
+              Don’t have an account{" "}
               <a href="/signup" className="font-medium text-slate-700 hover:text-slate-900">
                 Create one
               </a>

@@ -1,139 +1,160 @@
 // server/src/controllers/user-controller.ts
-import { Request, Response, NextFunction } from 'express';
+import type { Request, Response } from 'express';
+import { Op, UniqueConstraintError, ValidationError } from 'sequelize';
 import { User } from '../models/index.js';
+import bcrypt from 'bcryptjs';
 
-/**
- * GET /api/users
- * List all users
- */
-export async function getUsers(req: Request, res: Response, next: NextFunction) {
+// You can override via env; default is 10 which is a good dev value.
+const SALT_ROUNDS = Number(process.env.BCRYPT_SALT_ROUNDS ?? 10);
+
+// ────────────────────────────────────────────────────────────────────────────────
+// Helpers
+// ────────────────────────────────────────────────────────────────────────────────
+
+async function hashPassword(plain: string): Promise<string> {
+  return bcrypt.hash(plain, SALT_ROUNDS);
+}
+
+function safeUser(u: any) {
+  return {
+    id: u.id,
+    username: u.username,
+    email: u.email,
+  };
+}
+
+// ────────────────────────────────────────────────────────────────────────────────
+// Controllers
+// ────────────────────────────────────────────────────────────────────────────────
+
+export async function listUsers(req: Request, res: Response) {
   try {
-    const users = await User.findAll();
-    res.json(users);
+    const { q } = req.query;
+    const where: any = {};
+    if (typeof q === 'string' && q.trim()) {
+      where[Op.or] = [
+        { username: { [Op.iLike]: `%${q}%` } },
+        { email: { [Op.iLike]: `%${q}%` } },
+      ];
+    }
+    const users = await User.findAll({
+      where,
+      order: [['id', 'ASC']],
+      attributes: ['id', 'username', 'email'], // never send password_hash
+    });
+    return res.json(users);
   } catch (err) {
-    next(err);
+    console.error('listUsers error:', err);
+    return res.status(500).json({ error: 'Failed to fetch users' });
   }
 }
 
-/**
- * GET /api/users/:id
- * Get a single user by id
- */
-export async function getUserById(req: Request, res: Response, next: NextFunction) {
+export async function getUserById(req: Request, res: Response) {
   try {
-    const { id } = req.params;
-    const user = await User.findByPk(Number(id));
+    const id = Number(req.params.id);
+    if (!Number.isFinite(id)) return res.status(400).json({ error: 'Invalid id' });
+
+    const user = await User.findByPk(id, { attributes: ['id', 'username', 'email'] });
     if (!user) return res.status(404).json({ error: 'User not found' });
-    res.json(user);
+
+    return res.json(user);
   } catch (err) {
-    next(err);
+    console.error('getUserById error:', err);
+    return res.status(500).json({ error: 'Failed to fetch user' });
   }
 }
 
-/**
- * POST /api/users
- * Create (register) a new user
- * Body: { username, email, password }
- */
-export async function createUser(req: Request, res: Response, next: NextFunction) {
+export async function createUser(req: Request, res: Response) {
   try {
-    const { username, email, password } = req.body;
-
+    const { username, email, password } = req.body ?? {};
     if (!username || !email || !password) {
       return res.status(400).json({ error: 'username, email, and password are required' });
     }
 
-    // Optional: enforce unique email at the app level (DB has UNIQUE constraint too)
-    const existing = await User.findOne({ where: { email } });
-    if (existing) return res.status(409).json({ error: 'Email already in use' });
-
-    // NOTE: If you plan to hash passwords, do it here before create(...)
-    // const hashed = await bcrypt.hash(password, 10);
-
-    const newUser = await User.create({ username, email, password /* password: hashed */ });
-    res.status(201).json(newUser);
-  } catch (err) {
-    next(err);
-  }
-}
-
-/**
- * POST /api/auth/login
- * Login with email + password
- * Body: { email, password }
- */
-export async function loginUser(req: Request, res: Response, next: NextFunction) {
-  try {
-    const { email, password } = req.body;
-
-    if (!email || !password) {
-      return res.status(400).json({ error: 'email and password are required' });
+    // Pre-check for uniqueness (DB unique constraints should also exist)
+    const existing = await User.findOne({
+      where: { [Op.or]: [{ username }, { email }] },
+      attributes: ['id'],
+    });
+    if (existing) {
+      return res.status(409).json({ error: 'Username or email already in use' });
     }
 
-    const user = await User.findOne({ where: { email } });
-    if (!user) return res.status(401).json({ error: 'Invalid credentials' });
+    const password_hash = await hashPassword(password);
 
-    // NOTE: If you hash passwords, compare with bcrypt.compare(password, user.password)
-    // const ok = await bcrypt.compare(password, user.password);
-    const ok = user.password === password; // plain comparison for now
-    if (!ok) return res.status(401).json({ error: 'Invalid credentials' });
+    const user = await User.create({ username, email, password_hash });
 
-    // If you use JWT sessions, issue a token here and set cookie/return token
-    // const token = sign({ id: user.id }, process.env.JWT_SECRET!, { expiresIn: '1d' });
-    // res.json({ user, token });
-
-    res.json({ message: 'Login successful', user });
-  } catch (err) {
-    next(err);
+    return res.status(201).json(safeUser(user));
+  } catch (err: any) {
+    if (err instanceof UniqueConstraintError || err instanceof ValidationError) {
+      // Defensive: in case the DB unique constraint fired instead of our pre-check
+      return res.status(409).json({ error: 'Username or email already in use' });
+    }
+    console.error('createUser error:', err);
+    return res.status(500).json({ error: 'Failed to create user' });
   }
 }
 
-/**
- * PUT /api/users/:id
- * Update a user
- * Body: { username?, email?, password? }
- */
-export async function updateUser(req: Request, res: Response, next: NextFunction) {
+export async function updateUser(req: Request, res: Response) {
   try {
-    const { id } = req.params;
-    const { username, email, password } = req.body;
+    const id = Number(req.params.id);
+    if (!Number.isFinite(id)) return res.status(400).json({ error: 'Invalid id' });
 
-    const user = await User.findByPk(Number(id));
+    const user = await User.findByPk(id);
     if (!user) return res.status(404).json({ error: 'User not found' });
 
-    if (email) {
-      // Optional: prevent duplicate emails
-      const existing = await User.findOne({ where: { email } });
-      if (existing && existing.id !== user.id) {
-        return res.status(409).json({ error: 'Email already in use' });
+    const { username, email, password } = req.body ?? {};
+
+    // Uniqueness guard if changing username/email
+    if (username || email) {
+      const existing = await User.findOne({
+        where: {
+          [Op.and]: [
+            { id: { [Op.ne]: id } },
+            {
+              [Op.or]: [
+                ...(username ? [{ username }] : []),
+                ...(email ? [{ email }] : []),
+              ],
+            },
+          ],
+        },
+        attributes: ['id'],
+      });
+      if (existing) {
+        return res.status(409).json({ error: 'Username or email already in use' });
       }
     }
 
-    // If hashing passwords, do it here for `password`
-    if (username !== undefined) user.username = username;
-    if (email !== undefined) user.email = email;
-    if (password !== undefined) user.password = password; // or hashed
+    const patch: Partial<{ username: string; email: string; password_hash: string }> = {};
+    if (username !== undefined) patch.username = username;
+    if (email !== undefined) patch.email = email;
+    if (password !== undefined) patch.password_hash = await hashPassword(password);
 
+    user.set(patch);
     await user.save();
-    res.json(user);
-  } catch (err) {
-    next(err);
+
+    return res.json(safeUser(user));
+  } catch (err: any) {
+    if (err instanceof UniqueConstraintError || err instanceof ValidationError) {
+      return res.status(409).json({ error: 'Username or email already in use' });
+    }
+    console.error('updateUser error:', err);
+    return res.status(500).json({ error: 'Failed to update user' });
   }
 }
 
-/**
- * DELETE /api/users/:id
- * Delete a user
- */
-export async function deleteUser(req: Request, res: Response, next: NextFunction) {
+export async function deleteUser(req: Request, res: Response) {
   try {
-    const { id } = req.params;
-    const user = await User.findByPk(Number(id));
-    if (!user) return res.status(404).json({ error: 'User not found' });
+    const id = Number(req.params.id);
+    if (!Number.isFinite(id)) return res.status(400).json({ error: 'Invalid id' });
 
-    await user.destroy();
-    res.status(204).send();
+    const count = await User.destroy({ where: { id } });
+    if (count === 0) return res.status(404).json({ error: 'User not found' });
+
+    return res.status(204).send();
   } catch (err) {
-    next(err);
+    console.error('deleteUser error:', err);
+    return res.status(500).json({ error: 'Failed to delete user' });
   }
 }

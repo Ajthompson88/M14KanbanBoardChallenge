@@ -5,13 +5,8 @@ import { authenticateToken } from '../middleware/auth.js';
 
 const router = Router();
 
-/**
- * Keep EVERYTHING under /api so it matches the client baseURL.
- * Make /api/auth public (login/signup), and protect the rest of /api/*.
- */
-
 // Public auth endpoints (no token required):
-router.use('/api/auth', authRoutes);
+router.use('/auth', authRoutes);
 
 // Protected API (tickets, users, etc.):
 router.use('/api', authenticateToken, apiRoutes);

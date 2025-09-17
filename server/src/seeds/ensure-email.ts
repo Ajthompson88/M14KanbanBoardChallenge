@@ -1,6 +1,6 @@
 // server/src/seeds/ensure-email.ts
 import { DataTypes, QueryTypes } from 'sequelize';
-import { sequelize } from '../config/connection.js';
+import sequelize from '../config/connection.js';
 
 export async function ensureEmailColumn() {
   // Is there already an "email" column?

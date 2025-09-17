@@ -1,9 +1,9 @@
 // server/src/config/connection.ts
-import { Sequelize } from 'sequelize';
+import { sequelize } from '../models/index.js';
 import { config } from 'dotenv';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { initModels } from '../models/index.js';
+
 
 // Load .env no matter where the process starts
 const CWD = process.cwd();
@@ -25,19 +25,11 @@ const URL = process.env.DATABASE_URL || process.env.DB_URL;
 if (!URL) {
   throw new Error('DATABASE_URL (or DB_URL) not set. Put your Render **External** connection string in server/.env');
 }
-
-export const sequelize = new Sequelize(URL, {
-  dialect: 'postgres',
-  logging: false,
-  dialectOptions: shouldUseSSL ? { ssl: { require: true, rejectUnauthorized: false } } : undefined,
-});
-
-export async function initDB(): Promise<void> {
-  console.log('🔌 Connecting DB...');
-  await sequelize.authenticate();
-  initModels(sequelize);   // <-- initialize models here
-  await sequelize.sync();  // or { alter: true } while developing
-  console.log('✅ DB ready');
+if (shouldUseSSL && !URL.includes('sslmode=require') && !URL.includes('sslmode=disable')) {
+  // ensure SSL is used if we are in production or DB_SSL=true
+  const hasQuery = URL.includes('?');
+  const sep = hasQuery ? '&' : '?';
+  process.env.DATABASE_URL = URL + sep + 'sslmode=require';
 }
 
 export default sequelize;

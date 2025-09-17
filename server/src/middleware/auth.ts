@@ -1,28 +1,46 @@
 // server/src/middleware/auth.ts
-import jwt from "jsonwebtoken";
-import type { Request, Response, NextFunction } from "express";
+import jwt from 'jsonwebtoken';
+import type { Request, Response, NextFunction } from 'express';
 
 export type UserPayload = { id: number; email: string; username: string };
 
-const JWT_SECRET = process.env.ACCESS_TOKEN_SECRET as string;
+const JWT_SECRET = process.env.ACCESS_TOKEN_SECRET;
+if (!JWT_SECRET) {
+  console.warn(
+    '⚠️ ACCESS_TOKEN_SECRET missing at startup — all token checks will fail.'
+  );
+}
 
 export function authenticateToken(req: Request, res: Response, next: NextFunction) {
-  const header = req.header("authorization") || req.header("Authorization");
-  if (!header?.startsWith("Bearer ")) return res.sendStatus(401);
+  try {
+    const header = req.header('authorization') || req.header('Authorization');
+    if (!header?.startsWith('Bearer ')) {
+      return res.status(401).json({ message: 'Missing Bearer token' });
+    }
 
-  const token = header.slice(7);
-  if (!JWT_SECRET) {
-    console.error("Missing ACCESS_TOKEN_SECRET");
-    return res.status(500).json({ message: "Server misconfigured" });
+    if (!JWT_SECRET) {
+      return res.status(500).json({ message: 'Server misconfigured: ACCESS_TOKEN_SECRET missing' });
+    }
+
+    const token = header.slice(7);
+
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const { sub, id, email, username } = decoded as Partial<UserPayload & { sub: number }>;
+
+    // accept either "id" or "sub" claim
+    const userId = typeof id === 'number' ? id : typeof sub === 'number' ? sub : undefined;
+
+    if (!userId || !email || !username) {
+      return res.status(403).json({ message: 'Invalid token payload' });
+    }
+
+    (req as any).user = { id: userId, email, username } satisfies UserPayload;
+
+    return next();
+  } catch (err) {
+    console.error('JWT verify error:', err);
+    return res.status(403).json({ message: 'Invalid or expired token' });
   }
-
-  jwt.verify(token, JWT_SECRET, (err, decoded) => {
-    if (err) return res.sendStatus(403);
-    const { id, email, username } = (decoded ?? {}) as Partial<UserPayload>;
-    if (typeof id !== "number" || !email || !username) return res.sendStatus(403);
-    (req as any).user = { id, email, username } as UserPayload;
-    next();
-  });
 }
 
 export function getUser(req: Request): UserPayload | undefined {

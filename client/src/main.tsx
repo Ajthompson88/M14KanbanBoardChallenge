@@ -3,7 +3,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { RouterProvider } from 'react-router-dom';
 import './index.css';
-
+import './api/authAPI';
 import { router } from './router';               // <-- use your data router
 import { AuthProvider } from './context/AuthProvider';
 

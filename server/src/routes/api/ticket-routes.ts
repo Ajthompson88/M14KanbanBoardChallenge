@@ -1,19 +1,16 @@
-import { Router } from "express";
-import { authenticateToken } from "../../middleware/auth.js";
-import {
-  listTickets,
-  getTicket,
-  createTicket,
-  updateTicket,
-  deleteTicket,
-} from "../../controllers/ticket-controller.js";
+// server/src/routes/api/tickets-routes.ts
+import { Router } from 'express';
+import { listTickets, getTicketById, createTicket, updateTicket, deleteTicket } from '../../controllers/ticket-controller.js';
+import { authenticateToken } from '../../middleware/auth.js';
 
-export const ticketRouter = Router();
+const router = Router();
 
-ticketRouter.get("/", authenticateToken, listTickets);
-ticketRouter.get("/:id", authenticateToken, getTicket);
-ticketRouter.post("/", authenticateToken, createTicket);
-ticketRouter.put("/:id", authenticateToken, updateTicket);
-ticketRouter.delete("/:id", authenticateToken, deleteTicket);
+router.use(authenticateToken); // everything below requires a valid token
+router.get('/', listTickets);
+router.get('/:id', getTicketById);
+router.post('/', createTicket);
+router.put('/:id', updateTicket);
+router.patch('/:id', updateTicket);
+router.delete('/:id', deleteTicket);
 
-export default ticketRouter;
+export default router;

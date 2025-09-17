@@ -1,135 +1,180 @@
-// FILE: server/src/controllers/ticket-controller.ts
-import type { Request, Response } from "express";
-import type { FindAttributeOptions } from "sequelize";
-import { Ticket, User } from "../models/index.js";
+import type { Request, Response } from 'express';
+import { Op } from 'sequelize';
+import { Ticket, User } from '../models/index.js';
+import type { TicketStatus } from '../models/ticket.js'; // <-- import the model's type
 
-const STATUS_OPTS = new Set(["Todo", "In Progress", "Done"]);
-const userAttrs: FindAttributeOptions = ["id", "username", "email"]; // ← mutable, not readonly
-
-function bad(res: Response, code: number, message: string) {
-  return res.status(code).json({ message });
+function normalizeStatus(input: unknown): TicketStatus | undefined {
+  if (typeof input !== 'string') return undefined;
+  const s = input.trim().toLowerCase().replace(/\s+/g, '_');
+  if (s === 'todo' || s === 'in_progress' || s === 'done') return s as TicketStatus;
+  return undefined;
 }
 
-export async function listTickets(_req: Request, res: Response) {
+// ────────────────────────────────────────────────────────────────────────────────
+// CRUD: Tickets
+// ────────────────────────────────────────────────────────────────────────────────
+
+export async function listTickets(req: Request, res: Response) {
   try {
+    const { q, status, userId } = req.query;
+
+    const where: any = {};
+    const norm = normalizeStatus(status);
+    if (norm) where.status = norm;
+    if (userId) where.userId = Number(userId);
+
+    if (typeof q === 'string' && q.trim()) {
+      where[Op.or] = [
+        { title: { [Op.iLike]: `%${q}%` } },
+        { description: { [Op.iLike]: `%${q}%` } },
+      ];
+    }
+
     const tickets = await Ticket.findAll({
-      include: [{ model: User, as: "assignedUser", attributes: userAttrs }],
-      order: [["id", "ASC"]],
+      where,
+      order: [['id', 'ASC']],
+      include: [{ model: User, as: 'owner', attributes: ['id', 'username', 'email'] }],
     });
-    res.json(tickets);
-  } catch (e) {
-    console.error(e);
-    bad(res, 500, "Failed to fetch tickets");
+    return res.json(tickets);
+  } catch (err) {
+    console.error('listTickets error:', err);
+    return res.status(500).json({ error: 'Failed to fetch tickets' });
   }
 }
 
-export async function getTicket(req: Request, res: Response) {
+export async function getTicketById(req: Request, res: Response) {
   try {
     const id = Number(req.params.id);
-    if (!Number.isFinite(id)) return bad(res, 400, "Invalid id");
+    if (!Number.isFinite(id)) return res.status(400).json({ error: 'Invalid id' });
 
     const ticket = await Ticket.findByPk(id, {
-      include: [{ model: User, as: "assignedUser", attributes: userAttrs }],
+      include: [{ model: User, as: 'owner', attributes: ['id', 'username', 'email'] }],
     });
-    if (!ticket) return bad(res, 404, "Not found");
-    res.json(ticket);
-  } catch (e) {
-    console.error(e);
-    bad(res, 500, "Failed to fetch ticket");
+    if (!ticket) return res.status(404).json({ error: 'Ticket not found' });
+
+    return res.json(ticket);
+  } catch (err) {
+    console.error('getTicketById error:', err);
+    return res.status(500).json({ error: 'Failed to fetch ticket' });
   }
 }
 
 export async function createTicket(req: Request, res: Response) {
   try {
     const {
+      title,
       name,
-      description = "",
-      status = "Todo",
-      assignedUserId = null,
-    } = (req.body ?? {}) as {
+      description = null,
+      status,
+      assignedUserId,
+      userId,
+    }: {
+      title?: string;
       name?: string;
-      description?: string;
+      description?: string | null;
       status?: string;
       assignedUserId?: number | null;
-    };
+      userId?: number | null;
+    } = req.body ?? {};
 
-    if (!name?.trim()) return bad(res, 400, "Name is required");
-    if (!STATUS_OPTS.has(status)) return bad(res, 400, "Invalid status");
+    const finalTitle = (title ?? name ?? '').trim();
+    if (!finalTitle) return res.status(400).json({ error: 'Title is required' });
 
-    const created = await Ticket.create({
-      name: name.trim(),
-      description: String(description ?? ""),
-      status: status as "Todo" | "In Progress" | "Done",
-      assignedUserId: assignedUserId ?? null,
+    const finalStatus = normalizeStatus(status) ?? 'todo';
+
+    // 🔧 Ensure this is strictly number | null (never undefined)
+    let finalUserId: number | null = null;
+    if (typeof userId === 'number') finalUserId = userId;
+    else if (typeof assignedUserId === 'number') finalUserId = assignedUserId;
+
+    const ticket = await Ticket.create({
+      title: finalTitle,
+      description: description ?? null,
+      status: finalStatus,
+      userId: finalUserId, // <- number | null, not undefined
     });
 
-    const full = await Ticket.findByPk(created.id, {
-      include: [{ model: User, as: "assignedUser", attributes: userAttrs }],
-    });
-    res.status(201).json(full);
-  } catch (e) {
-    console.error(e);
-    bad(res, 500, "Failed to create ticket");
+    return res.status(201).json(ticket);
+  } catch (err) {
+    console.error('createTicket error:', err);
+    return res.status(500).json({ error: 'Failed to create ticket' });
   }
 }
+
 
 export async function updateTicket(req: Request, res: Response) {
   try {
     const id = Number(req.params.id);
-    if (!Number.isFinite(id)) return bad(res, 400, "Invalid id");
+    if (!Number.isFinite(id)) return res.status(400).json({ error: 'Invalid id' });
 
-    const t = await Ticket.findByPk(id);
-    if (!t) return bad(res, 404, "Not found");
+    const ticket = await Ticket.findByPk(id);
+    if (!ticket) return res.status(404).json({ error: 'Ticket not found' });
 
-    const { name, description, status, assignedUserId } = (req.body ?? {}) as {
+    const {
+      title,
+      name,
+      description,
+      status,
+      assignedUserId,
+      userId,
+    }: {
+      title?: string;
       name?: string;
-      description?: string;
+      description?: string | null;
       status?: string;
       assignedUserId?: number | null;
-    };
+      userId?: number | null;
+    } = req.body ?? {};
 
     const patch: Partial<{
-      name: string;
-      description: string;
-      status: "Todo" | "In Progress" | "Done";
-      assignedUserId: number | null;
+      title: string;
+      description: string | null;
+      status: TicketStatus;
+      userId: number | null;
     }> = {};
 
-    if (name != null) {
-      if (!name.trim()) return bad(res, 400, "Name cannot be empty");
-      patch.name = name.trim();
+    if (title !== undefined || name !== undefined) {
+      const t = (title ?? name ?? '').trim();
+      if (!t) return res.status(400).json({ error: 'Title cannot be empty' });
+      patch.title = t;
     }
-    if (description != null) patch.description = String(description);
-    if (status != null) {
-      if (!STATUS_OPTS.has(status)) return bad(res, 400, "Invalid status");
-      patch.status = status as "Todo" | "In Progress" | "Done";
-    }
-    if (assignedUserId !== undefined) {
-      patch.assignedUserId = assignedUserId ?? null;
+    if (description !== undefined) patch.description = description;
+    if (status !== undefined) {
+      const norm = normalizeStatus(status);
+      if (!norm) return res.status(400).json({ error: 'Invalid status' });
+      patch.status = norm;
     }
 
-    await t.update(patch);
+    // 🔧 Guarantee number | null (avoid undefined)
+    if (userId !== undefined || assignedUserId !== undefined) {
+      let uid: number | null = null;
+      if (typeof userId === 'number') uid = userId;
+      else if (typeof assignedUserId === 'number') uid = assignedUserId;
+      patch.userId = uid;
+    }
 
-    const full = await Ticket.findByPk(id, {
-      include: [{ model: User, as: "assignedUser", attributes: userAttrs }],
-    });
-    res.json(full);
-  } catch (e) {
-    console.error(e);
-    bad(res, 500, "Failed to update ticket");
+    ticket.set(patch);
+    await ticket.save();
+
+    return res.json(ticket);
+  } catch (err) {
+    console.error('updateTicket error:', err);
+    return res.status(500).json({ error: 'Failed to update ticket' });
   }
 }
+
 
 export async function deleteTicket(req: Request, res: Response) {
   try {
     const id = Number(req.params.id);
-    if (!Number.isFinite(id)) return bad(res, 400, "Invalid id");
-    const t = await Ticket.findByPk(id);
-    if (!t) return bad(res, 404, "Not found");
-    await t.destroy();
-    res.json({ message: "Deleted" });
-  } catch (e) {
-    console.error(e);
-    bad(res, 500, "Failed to delete ticket");
+    if (!Number.isFinite(id)) return res.status(400).json({ error: 'Invalid id' });
+
+    const count = await Ticket.destroy({ where: { id } });
+    if (count === 0) return res.status(404).json({ error: 'Ticket not found' });
+
+    return res.status(204).send();
+  } catch (err) {
+    console.error('deleteTicket error:', err);
+    return res.status(500).json({ error: 'Failed to delete ticket' });
   }
 }
