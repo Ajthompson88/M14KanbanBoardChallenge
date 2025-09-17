@@ -1,1 +1,14 @@
 @import "tailwindcss";
+@tailwind components;
+@tailwind utilities;
+
+:root{
+    --brand-bg:#0b0f1a;         /* page background (near-black blue)   */
+    --brand-panel:#0f172a;      /* cards/panels                         */
+    --brand-text:#e6e8f2;       /* primary text                         */
+    --brand-muted:#9aa4b2;      /* secondary text                       */
+    --brand-accent:#7c3aed;     /* violet                               */
+    --brand-accent-2:#6d28d9;   /* darker violet (hover)                */
+    --brand-ring:rgba(124,58,237,.35); /* ring color                    */
+  }
+  
