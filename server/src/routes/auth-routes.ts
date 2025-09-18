@@ -1,46 +1,87 @@
 // server/src/routes/auth-routes.ts
-import { Router } from 'express';
-import { User } from '../models/index.js'; // adjust path if under routes/api
-import jwt from 'jsonwebtoken';
-import bcrypt from 'bcryptjs';
-import { authenticateToken, getUser } from '../middleware/auth.js';
+import { Router } from "express";
+import jwt from "jsonwebtoken";
+import bcrypt from "bcryptjs";
+import { Op } from "sequelize";
+import { User } from "../models/index.js";
 
 const router = Router();
+const JWT_SECRET = process.env.ACCESS_TOKEN_SECRET || "devsecret";
 
-router.get('/me', authenticateToken, (req, res) => {
-  const u = getUser(req);
-  return res.json(u); // { id, email, username }
-});
+/** Helper: sign JWT for a user record */
+function signFor(u: { id: number; username: string; email: string }) {
+  return jwt.sign(
+    { sub: u.id, username: u.username, email: u.email },
+    JWT_SECRET,
+    { expiresIn: "1h" }
+  );
+}
 
-router.post('/login', async (req, res) => {
+function isBcryptHash(s: string) {
+  return /^\$2[aby]\$/.test(s);
+}
+
+/**
+ * POST /api/auth/login
+ * Body: { username?: string, email?: string, password: string }
+ */
+router.post("/login", async (req, res) => {
   try {
-    const { email, username, password } = req.body ?? {};
-    if (!password || (!email && !username)) {
-      return res.status(400).json({ message: 'Username/email and password are required' });
+    const { username, email, password } = req.body ?? {};
+    if ((!username && !email) || !password) {
+      return res.status(400).json({ message: "username or email, and password are required" });
     }
 
-    const where: { email?: string; username?: string } = {};
-    if (email) where.email = email;
-    if (username) where.username = username;
-
+    const where = username ? { username } : { email };
     const user = await User.findOne({ where });
-    if (!user) return res.status(401).json({ message: 'Invalid username/email or password' });
+    if (!user) return res.status(401).json({ message: "Invalid credentials" });
 
-    const stored = String(user.get('password_hash') ?? '');
-    const ok = stored.startsWith('$2') ? await bcrypt.compare(password, stored) : stored === password;
-    if (!ok) return res.status(401).json({ message: 'Invalid username/email or password' });
+    const hash = user.password_hash ?? "";
+    const ok = isBcryptHash(hash) ? await bcrypt.compare(password, hash) : hash === password;
+    if (!ok) return res.status(401).json({ message: "Invalid credentials" });
 
-    const secret = process.env.ACCESS_TOKEN_SECRET!;
-    const payload = { sub: user.get('id'), username: user.get('username'), email: user.get('email') };
-    const token = jwt.sign(payload, secret, { expiresIn: '1h' });
-
+    const token = signFor({ id: user.id, username: user.username, email: user.email });
     return res.json({
       token,
-      user: { id: user.get('id'), username: user.get('username'), email: user.get('email') },
+      user: { id: user.id, username: user.username, email: user.email },
     });
   } catch (err) {
-    console.error('Login error:', err);
-    return res.status(500).json({ error: 'Login failed' });
+    console.error("Login error:", err);
+    return res.status(500).json({ message: "Login failed" });
+  }
+});
+
+/**
+ * POST /api/auth/register
+ * Body: { username: string, email: string, password: string }
+ * Creates the user (hashed password) and returns { token, user }
+ */
+router.post("/register", async (req, res) => {
+  try {
+    const { username, email, password } = req.body ?? {};
+    if (!username || !email || !password) {
+      return res.status(400).json({ message: "username, email and password are required" });
+    }
+
+    // uniqueness check
+    const exists = await User.findOne({
+      where: { [Op.or]: [{ username }, { email }] },
+    });
+    if (exists) {
+      return res.status(409).json({ message: "Username or email already in use" });
+    }
+
+    const password_hash = await bcrypt.hash(password, 10);
+    const user = await User.create({ username, email, password_hash });
+
+    const token = signFor({ id: user.id, username: user.username, email: user.email });
+    return res.status(201).json({
+      token,
+      user: { id: user.id, username: user.username, email: user.email },
+    });
+  } catch (err) {
+    console.error("Register error:", err);
+    return res.status(500).json({ message: "Registration failed" });
   }
 });
 

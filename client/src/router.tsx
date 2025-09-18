@@ -1,7 +1,9 @@
+// src/router.tsx
 import { createBrowserRouter } from "react-router-dom";
 import { AppLayout } from "./layouts/AppLayout";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
+import Register from "./pages/Register";   // ← add this import
 import Board from "./pages/Board";
 import CreateTicket from "./pages/CreateTicket";
 import EditTicket from "./pages/EditTicket";
@@ -16,6 +18,7 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <Home /> },
       { path: "login", element: <Login /> },
+      { path: "register", element: <Register /> },   // ← add this route
       {
         path: "board",
         element: (
@@ -44,4 +47,4 @@ export const router = createBrowserRouter([
   },
 ]);
 
-export default router; // optional — keeps both named & default exports
+export default router;

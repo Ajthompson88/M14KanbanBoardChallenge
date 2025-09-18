@@ -1,24 +1,17 @@
-// Vite configuration file
+// client/vite.config.ts
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
-import tailwindcss from '@tailwindcss/vite';
+import tailwindcss from "@tailwindcss/vite";
 
-// Dev server on :3000; proxy API & auth to :3001 (your Express server)
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
-    host: '127.0.0.1',
+    host: "127.0.0.1",
     port: 3000,
     proxy: {
-      "/api": {
-        target: "http://127.0.0.1:3001",
-        changeOrigin: true,
-      },
+      "/api": { target: "http://127.0.0.1:3001", changeOrigin: true },
+      // (you don’t need a separate /auth proxy; it’s /api/auth/…)
     },
   },
-  // (Optional) nice defaults for `vite preview`
-  preview: {
-    port: 4173,
-    strictPort: true,
-  },
+  preview: { port: 4173, strictPort: true },
 });

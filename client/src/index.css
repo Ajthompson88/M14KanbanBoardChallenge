@@ -1,14 +1,92 @@
+/* Tailwind v4 entry */
 @import "tailwindcss";
-@tailwind components;
-@tailwind utilities;
 
-:root{
-    --brand-bg:#0b0f1a;         /* page background (near-black blue)   */
-    --brand-panel:#0f172a;      /* cards/panels                         */
-    --brand-text:#e6e8f2;       /* primary text                         */
-    --brand-muted:#9aa4b2;      /* secondary text                       */
-    --brand-accent:#7c3aed;     /* violet                               */
-    --brand-accent-2:#6d28d9;   /* darker violet (hover)                */
-    --brand-ring:rgba(124,58,237,.35); /* ring color                    */
-  }
-  
+/* ──────────────────────────────────────────────────────────────
+   ShadowStack theme — variables + Tailwind color tokens
+   (You can use both the CSS vars and Tailwind utilities together)
+   ────────────────────────────────────────────────────────────── */
+@theme {
+  --color-brand-bg: #0b1220;
+  --color-brand-panel: #0f1528;
+  --color-brand-text: #e5e7eb;
+  --color-brand-muted: #9aa3af;
+  --color-brand-border: rgb(255 255 255 / 0.06);
+  --color-brand-accent: #7c4dff;
+  --color-brand-accent-2: #946CFF;
+}
+
+:root {
+  /* CSS variables (for your custom helpers) */
+  --brand-bg:        #0b1220;
+  --brand-panel:     #0f1528;
+  --brand-text:      #e5e7eb;
+  --brand-muted:     #9aa3af;
+  --brand-border:    rgba(255,255,255,.06);
+  --brand-accent:    #7c4dff;
+  --brand-accent-2:  #946CFF;
+  --brand-ring:      rgba(124,77,255,.35);
+
+  color-scheme: dark;
+}
+
+/* Base sizing */
+html, body, #root { height: 100%; }
+body {
+  background: var(--brand-bg);
+  color: var(--brand-text);
+}
+
+/* ──────────────────────────────────────────────────────────────
+   Helpers (kept from your original)
+   ────────────────────────────────────────────────────────────── */
+.panel, .ss-card {
+  background: var(--brand-panel);
+  border: 1px solid var(--brand-border);
+  border-radius: 1rem;
+  box-shadow: 0 6px 24px rgb(0 0 0 / 0.35);
+}
+
+.btn, .ss-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: .5rem 1rem;
+  border-radius: .5rem;
+  text-decoration: none;
+  border: 1px solid transparent;
+}
+
+.btn-primary, .ss-btn-primary {
+  background: var(--brand-accent);
+  color: #fff;
+}
+.btn-primary:hover, .ss-btn-primary:hover {
+  background: var(--brand-accent-2);
+}
+
+.btn-ghost, .ss-btn-ghost {
+  background: transparent;
+  color: var(--brand-text);
+  border-color: var(--brand-border);
+}
+.btn-ghost:hover, .ss-btn-ghost:hover {
+  background: rgb(255 255 255 / 0.04);
+}
+
+/* Inputs with Tailwind ring on focus */
+.input, .ss-input {
+  @apply w-full rounded-lg border px-3 py-2 outline-none;
+  border-color: var(--brand-border);
+  background: transparent;
+  color: var(--brand-text);
+}
+.input:focus, .ss-input:focus {
+  @apply ring-4;
+  /* Tell Tailwind what color to use for the focus ring */
+  --tw-ring-color: var(--brand-ring);
+}
+
+/* Small utilities if you want them */
+.text-muted   { color: var(--brand-muted); }
+.border-brand { border-color: var(--brand-border); }
+.bg-panel     { background: var(--brand-panel); }

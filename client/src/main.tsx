@@ -1,13 +1,12 @@
-// client/src/main.tsx
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import { RouterProvider } from 'react-router-dom';
-import './index.css';
-import './api/authAPI';
-import { router } from './router';               // <-- use your data router
-import { AuthProvider } from './context/AuthProvider';
+import React from "react";
+import ReactDOM from "react-dom/client";
+import "./index.css";
+import "./api/authAPI";        // sets up axios + token header
+import { RouterProvider } from "react-router-dom";
+import { router } from "./router";
+import { AuthProvider } from "./context/AuthProvider";
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
+ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <AuthProvider>
       <RouterProvider router={router} />
